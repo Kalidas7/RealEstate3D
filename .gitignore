@@ -1,0 +1,24 @@
+# Python / Django
+venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
+
+# React Native / Expo
+node_modules/
+.expo/
+dist/
+
+# Media files (IMPORTANT)
+backend/media/
+*.glb
+*.gltf
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
