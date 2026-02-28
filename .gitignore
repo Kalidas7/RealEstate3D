@@ -22,3 +22,5 @@ backend/media/
 # OS
 .DS_Store
 Thumbs.db
+
+data.json
