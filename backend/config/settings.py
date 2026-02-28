@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.parse(
-        "postgresql://postgres:Kalidas@2606!@db.lagmbkkfqptulxckwnpr.supabase.co:5432/postgres",
+        "postgresql://postgres:Kalidas%402606%21@db.lagmbkkfqptulxckwnpr.supabase.co:5432/postgres",
         conn_max_age=600,
         ssl_require=True
     )
