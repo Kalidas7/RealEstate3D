@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const API_URL = 'http://192.168.1.6:8000';
+const API_URL = 'https://realestate3d.onrender.com';
 
 interface User {
     id: number;

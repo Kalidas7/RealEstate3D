@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const API_URL = 'http://192.168.1.6:8000/api';
+const API_URL = 'https://realestate3d.onrender.com/api';
 
 export default function LoginScreen() {
   const router = useRouter();

@@ -9,7 +9,7 @@ import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from './styles';
 
-const API_BASE = 'http://192.168.1.6:8000';
+const API_BASE = 'https://realestate3d.onrender.com';
 
 export default function PropertyDetailScreen() {
     const params = useLocalSearchParams();

@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PropertyCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/PropertyCard';
 
-const API_URL = 'http://192.168.1.6:8000/api';
+const API_URL = 'https://realestate3d.onrender.com/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Offset so the first card is centered and side cards peek in

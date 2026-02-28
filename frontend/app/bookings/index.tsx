@@ -9,7 +9,7 @@ import * as Calendar from 'expo-calendar';
 import BookingModal from '../../components/BookingModal';
 import { styles } from './_styles';
 
-const API_BASE = 'http://192.168.1.6:8000';
+const API_BASE = 'https://realestate3d.onrender.com';
 
 interface PropertyDetails {
     id: number;
