@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { styles } from './styles';
+import { CameraMovementScript } from './CameraMovement';
+import { CameraMovementStyles } from './CameraMovement/styles';
 
 interface InteriorViewerProps {
   visible: boolean;
@@ -59,6 +61,7 @@ export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProp
         #error { display: none; position: absolute; top: 50%; left: 50%;
           transform: translate(-50%, -50%); color: #ff6b6b;
           text-align: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        ${CameraMovementStyles}
       </style>
       <script type="importmap">
         {
@@ -83,13 +86,15 @@ export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProp
         let scene, camera, renderer, controls;
         let model;
 
+        ${CameraMovementScript}
+
         function init() {
           try {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0a0a);
             
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 12); // Future camera movement logic goes here
+            camera.position.set(0, 5, 12);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -125,6 +130,10 @@ export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProp
                 model.position.sub(center.multiplyScalar(scale));
                 
                 scene.add(model);
+
+                if (window.initializeCameraNodes) {
+                  window.initializeCameraNodes(center, scale);
+                }
 
                 document.getElementById('loading').style.display = 'none';
               },
@@ -184,4 +193,3 @@ export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProp
     </View>
   );
 }
-
