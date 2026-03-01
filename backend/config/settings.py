@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-m@yv#bx$sjzjy#7n*&wrf1jocc1-4f^78nc1lp7-3j!9moje6%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True  # TEMPORARY: set back to False after debugging
 
 ALLOWED_HOSTS = [
     "realestate3d.onrender.com",
@@ -88,11 +88,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.parse(
-        "postgresql://postgres:Kalidas%402606%21@db.lagmbkkfqptulxckwnpr.supabase.co:5432/postgres",
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres.lagmbkkfqptulxckwnpr',
+        'PASSWORD': 'Kalidas@2606!',
+        'HOST': 'aws-1-ap-northeast-2.pooler.supabase.com',
+        'PORT': '6543',
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
 }
 
 
