@@ -161,16 +161,13 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Supabase Storage (S3) Configuration ---
-# To use Cloud Storage, you need to set these variables in your Render Environment tab
-AWS_ACCESS_KEY_ID = '33d5d8190a9796ec0534045d315e69f2'
-AWS_SECRET_ACCESS_KEY = 'ab5e200f1662736de974a3deeed6f716f7ae297e32f8d90f2427d9bbb31a2ced'
+# Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Render Environment tab
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'media'
 AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/s3'
 AWS_S3_REGION_NAME = 'ap-northeast-2'
@@ -180,7 +177,13 @@ AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = 'public-read'
 AWS_S3_VERIFY = True
 
-# Use django-storages with boto3 for all media files
-if AWS_SECRET_ACCESS_KEY:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
+# Always use Supabase S3 for media storage - no local fallback
+if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
+    import warnings
+    warnings.warn(
+        "WARNING: AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is not set. "
+        "Media file uploads will fail. Set these in your Render Environment tab."
+    )
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+MEDIA_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/object/public/media/'
