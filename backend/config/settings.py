@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'api',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -165,3 +166,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- Supabase Storage (S3) Configuration ---
+# To use Cloud Storage, you need to set these variables in your Render Environment tab
+AWS_ACCESS_KEY_ID = '33d5d8190a9796ec0534045d315e69f2'
+AWS_SECRET_ACCESS_KEY = 'ab5e200f1662736de974a3deeed6f716f7ae297e32f8d90f2427d9bbb31a2ced'
+AWS_STORAGE_BUCKET_NAME = 'media'
+AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/s3'
+AWS_S3_REGION_NAME = 'ap-northeast-2'
+
+# S3 configuration
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read'
+AWS_S3_VERIFY = True
+
+# Use django-storages with boto3 for all media files
+if AWS_SECRET_ACCESS_KEY:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
