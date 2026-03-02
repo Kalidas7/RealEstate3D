@@ -139,7 +139,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -185,5 +184,13 @@ if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
         "Media file uploads will fail. Set these in your Render Environment tab."
     )
 
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# Django 5.1+ requires STORAGES dict instead of DEFAULT_FILE_STORAGE / STATICFILES_STORAGE
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/object/public/media/'
