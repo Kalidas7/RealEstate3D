@@ -173,7 +173,8 @@ AWS_S3_REGION_NAME = 'ap-northeast-2'
 
 # S3 configuration
 AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = 'public-read'
+AWS_DEFAULT_ACL = None  # Supabase handles public access via bucket settings, not S3 ACLs
+AWS_QUERYSTRING_AUTH = False  # Don't add auth tokens to file URLs
 AWS_S3_VERIFY = True
 
 # Always use Supabase S3 for media storage - no local fallback
