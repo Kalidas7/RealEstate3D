@@ -165,8 +165,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Supabase Storage (S3) Configuration ---
 # Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Render Environment tab
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_ACCESS_KEY_ID = '33d5d8190a9796ec0534045d315e69f2'
+AWS_SECRET_ACCESS_KEY = 'ab5e200f1662736de974a3deeed6f716f7ae297e32f8d90f2427d9bbb31a2ced'
 AWS_STORAGE_BUCKET_NAME = 'media'
 AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3'
 AWS_S3_REGION_NAME = 'ap-northeast-2'
