@@ -168,8 +168,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'media'
-AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/s3'
+AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3'
 AWS_S3_REGION_NAME = 'ap-northeast-2'
+AWS_S3_SIGNATURE_VERSION = 's3v4'
 AWS_S3_ADDRESSING_STYLE = "path"
 
 # S3 configuration
