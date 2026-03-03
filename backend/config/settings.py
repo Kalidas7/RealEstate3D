@@ -174,7 +174,7 @@ AWS_S3_SIGNATURE_VERSION = 's3v4'
 AWS_S3_ADDRESSING_STYLE = "path"
 
 # S3 configuration
-AWS_S3_FILE_OVERWRITE = False
+AWS_S3_FILE_OVERWRITE = True
 AWS_DEFAULT_ACL = None  # Supabase handles public access via bucket settings, not S3 ACLs
 AWS_QUERYSTRING_AUTH = False  # Don't add auth tokens to file URLs
 AWS_S3_VERIFY = True
