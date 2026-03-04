@@ -196,4 +196,4 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-MEDIA_URL = 'https://lagmbkkfqptulxckwnpr.storage.supabase.co/storage/v1/object/public/media/'
+MEDIA_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/object/public/media/'
