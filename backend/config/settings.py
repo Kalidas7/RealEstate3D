@@ -179,6 +179,9 @@ AWS_DEFAULT_ACL = None  # Supabase handles public access via bucket settings, no
 AWS_QUERYSTRING_AUTH = False  # Don't add auth tokens to file URLs
 AWS_S3_VERIFY = True
 
+# Tell django-storages how to build the public URLs for these files
+AWS_S3_CUSTOM_DOMAIN = f'lagmbkkfqptulxckwnpr.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}'
+
 # Always use Supabase S3 for media storage - no local fallback
 if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
     import warnings
