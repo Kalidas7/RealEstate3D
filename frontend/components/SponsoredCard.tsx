@@ -4,12 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Card is 80% wide so left/right cards peek in from edges
-export const CARD_WIDTH = SCREEN_WIDTH * 0.80;
-export const CARD_HEIGHT = SCREEN_HEIGHT * 0.58; // tall / vertical
-export const CARD_MARGIN = 10;
+// Sponsored card — slightly smaller to leave room for the property list below
+export const CARD_WIDTH = SCREEN_WIDTH * 0.65;
+export const CARD_HEIGHT = SCREEN_HEIGHT * 0.38;
+export const CARD_MARGIN = 8;
 
-interface PropertyCardProps {
+interface SponsoredCardProps {
     id: number;
     name: string;
     location: string;
@@ -20,7 +20,7 @@ interface PropertyCardProps {
     onPress: () => void;
 }
 
-export default function PropertyCard({
+export default function SponsoredCard({
     name,
     location,
     price,
@@ -28,7 +28,7 @@ export default function PropertyCard({
     bedrooms,
     area,
     onPress,
-}: PropertyCardProps) {
+}: SponsoredCardProps) {
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
             <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
@@ -37,9 +37,9 @@ export default function PropertyCard({
                 style={styles.gradient}
             />
 
-            {/* Top badge */}
+            {/* Sponsored badge */}
             <View style={styles.exploreBadge}>
-                <Text style={styles.exploreText}>Tap to explore →</Text>
+                <Text style={styles.exploreText}>Sponsored ⭐</Text>
             </View>
 
             {/* Bottom info */}
@@ -115,15 +115,15 @@ const styles = StyleSheet.create({
         padding: 22,
     },
     name: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#fff',
-        marginBottom: 5,
+        marginBottom: 3,
     },
     location: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.85)',
-        marginBottom: 16,
+        marginBottom: 10,
     },
     footer: {
         flexDirection: 'row',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     price: {
-        fontSize: 22,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#4ade80',
     },

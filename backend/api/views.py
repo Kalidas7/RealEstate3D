@@ -6,8 +6,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserProfile, UserLike, Property, Booking
-from .serializers import UserSerializer, UserLikeSerializer, PropertySerializer, BookingSerializer
+from .models import UserProfile, UserLike, Property, Booking, ListedProperty
+from .serializers import UserSerializer, UserLikeSerializer, PropertySerializer, BookingSerializer, ListedPropertySerializer
 
 @api_view(['POST'])
 def check_email(request):
@@ -157,6 +157,15 @@ def get_properties(request):
     properties = Property.objects.all()
     # Pass request context for absolute URLs
     serializer = PropertySerializer(properties, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_listed_properties(request):
+    """
+    Returns a list of all listed properties (for the 'All Properties' section).
+    """
+    properties = ListedProperty.objects.all()
+    serializer = ListedPropertySerializer(properties, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])

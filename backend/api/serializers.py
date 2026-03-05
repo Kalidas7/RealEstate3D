@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, UserLike, Property, Booking
+from .models import UserProfile, UserLike, Property, Booking, ListedProperty
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,6 +23,11 @@ class UserLikeSerializer(serializers.ModelSerializer):
 class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
+        fields = '__all__'
+
+class ListedPropertySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListedProperty
         fields = '__all__'
 
 class BookingSerializer(serializers.ModelSerializer):

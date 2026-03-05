@@ -49,6 +49,26 @@ class Property(models.Model):
     def __str__(self):
         return self.name
 
+# --- Listed Properties (shown in the "All Properties" list on the home page) ---
+class ListedProperty(models.Model):
+    name = models.CharField(max_length=255)
+    location = models.CharField(max_length=255)
+    price = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='listed_property_images/')
+    three_d_file = models.FileField(upload_to='3d_models/', blank=True, null=True)
+    interior_file = models.FileField(upload_to='3d_models/interiors/', blank=True, null=True)
+    description = models.TextField(blank=True, default='')
+    bedrooms = models.IntegerField(default=1)
+    bathrooms = models.IntegerField(default=1)
+    area = models.CharField(max_length=50, default="1200 sqft")
+    interactive_mesh_names = models.TextField(
+        blank=True, default='',
+        help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022'
+    )
+
+    def __str__(self):
+        return self.name
+
 class Booking(models.Model):
     STATUS_CHOICES = (
         ('upcoming', 'Upcoming'),
