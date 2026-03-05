@@ -74,6 +74,15 @@ export default function PropertyDetailScreen() {
         ? (property.interior_file.startsWith('http') ? property.interior_file : `${API_BASE}${property.interior_file}`)
         : null;
 
+    // Parse comma-separated mesh names from API into buildingConfig
+    const meshNamesStr = property.interactive_mesh_names || '';
+    const exteriorConfig = {
+        fixedButtons: [] as any[],
+        interactiveMeshNames: meshNamesStr
+            ? meshNamesStr.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [],
+    };
+
     if (isFullscreen) {
         return (
             <View style={styles.container}>
@@ -86,6 +95,7 @@ export default function PropertyDetailScreen() {
                                 onClose={() => { }}
                                 modelUrl={modelUrl}
                                 propertyName={property.name}
+                                buildingConfig={exteriorConfig}
                                 onEnterInterior={() => {
                                     if (interiorUrl) setViewMode('interior');
                                 }}
@@ -96,6 +106,7 @@ export default function PropertyDetailScreen() {
                                 onClose={() => { }}
                                 modelUrl={modelUrl}
                                 propertyName={property.name}
+                                buildingConfig={exteriorConfig}
                                 onEnterInterior={() => {
                                     if (interiorUrl) setViewMode('interior');
                                 }}
@@ -150,6 +161,7 @@ export default function PropertyDetailScreen() {
                             onClose={() => { }}
                             modelUrl={modelUrl}
                             propertyName={property.name}
+                            buildingConfig={exteriorConfig}
                             onEnterInterior={() => {
                                 if (interiorUrl) setViewMode('interior');
                             }}
@@ -160,6 +172,7 @@ export default function PropertyDetailScreen() {
                             onClose={() => { }}
                             modelUrl={modelUrl}
                             propertyName={property.name}
+                            buildingConfig={exteriorConfig}
                             onEnterInterior={() => {
                                 if (interiorUrl) setViewMode('interior');
                             }}

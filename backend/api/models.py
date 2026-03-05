@@ -39,6 +39,10 @@ class Property(models.Model):
     bathrooms = models.IntegerField(default=1)
     area = models.CharField(max_length=50, default="1200 sqft")
 
+    # Comma-separated mesh names that should be highlighted green and trigger Enter Interior
+    # Example: "Geom3D106, Geom3D022, Geom3D050, Geom3D101"
+    interactive_mesh_names = models.TextField(blank=True, default='')
+
     def __str__(self):
         return self.name
 
