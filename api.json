@@ -1,0 +1,28 @@
+[
+  {
+    "id": 2,
+    "name": "Graffiti",
+    "location": "Kazhakootam",
+    "price": "10000000",
+    "image": "https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3/media/property_images/simone-hutsch-_wpce-AsLxk-unsplash.jpg",
+    "three_d_file": "https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3/media/3d_models/log_cabin_free_download.glb",
+    "interior_file": "https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3/media/3d_models/interiors/modern_apartment_1.glb",
+    "description": "with coords touch the",
+    "bedrooms": 3,
+    "bathrooms": 3,
+    "area": "1200 sqft"
+  },
+  {
+    "id": 1,
+    "name": "Skyline towers",
+    "location": "Trivandrum",
+    "price": "200",
+    "image": "https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3/media/property_images/joel-filipe-RFDP7_80v5A-unsplash.jpg",
+    "three_d_file": "https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3/media/3d_models/trial5d.glb",
+    "interior_file": null,
+    "description": "top class",
+    "bedrooms": 3,
+    "bathrooms": 3,
+    "area": "1200 sqft"
+  }
+]

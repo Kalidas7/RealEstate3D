@@ -2,8 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { styles } from './styles';
+import { graffitiExteriorConfig } from '../../Graffiti/exterior/config';
+import { skylineTowersExteriorConfig } from './config';
 
-interface ThreeDViewerProps {
+const getBuildingConfig = (name: string) => {
+  if (name === 'Graffiti') return graffitiExteriorConfig;
+  if (name === 'Skyline towers') return skylineTowersExteriorConfig;
+  return { fixedButtons: [], interactiveMeshNames: [] };
+};
+interface SkylineExteriorProps {
   visible: boolean;
   onClose: () => void;
   modelUrl: string | null;
@@ -11,8 +18,14 @@ interface ThreeDViewerProps {
   onEnterInterior?: () => void;
 }
 
-export default function ThreeDViewer({ visible, onClose, modelUrl, propertyName, onEnterInterior }: ThreeDViewerProps) {
+export default function SkylineExterior({ visible, onClose, modelUrl, propertyName, onEnterInterior }: SkylineExteriorProps) {
   const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    if (visible) {
+      console.log(`[FILE EXECUTING: frontend/components/buildings/Skyline towers/exterior/index.tsx] Component mounted for: ${propertyName}`);
+    }
+  }, [visible, propertyName]);
 
   if (!modelUrl) {
     return (
@@ -22,6 +35,9 @@ export default function ThreeDViewer({ visible, onClose, modelUrl, propertyName,
       </View>
     );
   }
+
+  const buildingConfig = getBuildingConfig(propertyName);
+  const configJson = JSON.stringify(buildingConfig);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -154,39 +170,54 @@ export default function ThreeDViewer({ visible, onClose, modelUrl, propertyName,
                 
                 scene.add(model);
 
-                // Add Fixed Green Buttons (Only for Graffiti Building)
-                if ('${propertyName}' === 'Graffiti') {
-                  const fixedButtons = [
-                    { name: 'Object_52', pos: [-3.301, 0.283, -0.106], size: [0.399, 0.996, 1.622] },
-                    { name: 'Object_36', pos: [2.035, 0.298, -4.451], size: [0.903, 0.765, 0.12] },
-                    { name: 'Object_37', pos: [-1.764, 0.178, -2.012], size: [0.903, 0.765, 0.12] },
-                    { name: 'Object_34', pos: [3.78, 0.285, 0.737], size: [0.179, 0.766, 1.409] },
-                    { name: 'Object_42', pos: [0.663, 0.373, -3.379], size: [0.199, 0.58, 1.591] },
-                    { name: 'Object_5', pos: [-3.383, 1.91, -0.118], size: [0.045, 0.983, 0.357] }
-                  ];
+                // Inject building configuration
+                const config = ${configJson};
+                const fixedButtons = config.fixedButtons || [];
+                const interactiveMeshNames = config.interactiveMeshNames || [];
 
-                  fixedButtons.forEach(btn => {
-                    const geometry = new THREE.BoxGeometry(btn.size[0], btn.size[1], btn.size[2]);
-                    const material = new THREE.MeshBasicMaterial({
-                      color: 0x00ff00,
-                      transparent: true,
-                      opacity: 0.5,
-                      depthTest: true
-                    });
-                    const mesh = new THREE.Mesh(geometry, material);
-                    mesh.position.set(btn.pos[0], btn.pos[1], btn.pos[2]);
-                    mesh.userData = { isFixed: true, name: btn.name, pos: btn.pos, size: btn.size };
-                    
-                    // Add to scene so coordinates are world-space (don't inherit model scale)
-                    scene.add(mesh);
-                    fixedClickableObjects.push(mesh);
+                fixedButtons.forEach(btn => {
+                  const geometry = new THREE.BoxGeometry(btn.size[0], btn.size[1], btn.size[2]);
+                  const material = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    transparent: true,
+                    opacity: 0.5,
+                    depthTest: true
                   });
-                }
+                  const mesh = new THREE.Mesh(geometry, material);
+                  mesh.position.set(btn.pos[0], btn.pos[1], btn.pos[2]);
+                  mesh.userData = { isFixed: true, name: btn.name, pos: btn.pos, size: btn.size };
+                  
+                  // Add to scene so coordinates are world-space (don't inherit model scale)
+                  scene.add(mesh);
+                  fixedClickableObjects.push(mesh);
+                });
 
-                // Find all meshes to make them selectable (Developer Mode)
+                // Find dynamic meshes to make them interactive or selectable
                 model.traverse((child) => {
-                  if (child.isMesh && !child.userData.isFixed) {
-                    selectableObjects.push(child);
+                  if (child.isMesh) {
+                    if (interactiveMeshNames.includes(child.name)) {
+                      // Apply Green Material for specific meshes
+                      child.material = new THREE.MeshBasicMaterial({
+                        color: 0x00ff00,
+                        transparent: true,
+                        opacity: 0.5,
+                        depthTest: true
+                      });
+                      
+                      // Tag it so the raycaster knows it's a hotzone
+                      child.userData = { 
+                        isFixed: true, 
+                        name: child.name, 
+                        pos: [child.position.x, child.position.y, child.position.z], 
+                        size: [child.scale.x, child.scale.y, child.scale.z] // Placeholder size, actual bounds read on click
+                      };
+                      
+                      // Add to the SAME array the Graffiti boxes use so clicks execute the exact same onEnterInterior logic
+                      fixedClickableObjects.push(child);
+                    } else if (!child.userData.isFixed) {
+                      // Keep other meshes selectable for developer logging
+                      selectableObjects.push(child);
+                    }
                   }
                 });
 

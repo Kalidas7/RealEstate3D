@@ -1,10 +1,12 @@
-    import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import ThreeDViewer from '@/components/ThreeDViewer';
-import InteriorViewer from '@/components/InteriorViewer';
+import SkylineExterior from '@/components/buildings/Skyline towers/exterior';
+import GraffitiExterior from '@/components/buildings/Graffiti/exterior';
+import GraffitiInterior from '@/components/buildings/Graffiti/interior';
+import SkylineInterior from '@/components/buildings/Skyline towers/interior';
 import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from './styles';
@@ -78,15 +80,34 @@ export default function PropertyDetailScreen() {
                 <Stack.Screen options={{ headerShown: false }} />
                 <View style={{ flex: 1 }}>
                     {viewMode === 'exterior' ? (
-                        <ThreeDViewer
+                        property.name === 'Skyline towers' ? (
+                            <SkylineExterior
+                                visible={true}
+                                onClose={() => { }}
+                                modelUrl={modelUrl}
+                                propertyName={property.name}
+                                onEnterInterior={() => {
+                                    if (interiorUrl) setViewMode('interior');
+                                }}
+                            />
+                        ) : (
+                            <GraffitiExterior
+                                visible={true}
+                                onClose={() => { }}
+                                modelUrl={modelUrl}
+                                propertyName={property.name}
+                                onEnterInterior={() => {
+                                    if (interiorUrl) setViewMode('interior');
+                                }}
+                            />
+                        )
+                    ) : property.name === 'Skyline towers' ? (
+                        <SkylineInterior
                             visible={true}
-                            onClose={() => { }}
-                            modelUrl={modelUrl}
-                            propertyName={property.name}
-                            onEnterInterior={() => interiorUrl && setViewMode('interior')}
+                            modelUrl={interiorUrl}
                         />
                     ) : (
-                        <InteriorViewer
+                        <GraffitiInterior
                             visible={true}
                             modelUrl={interiorUrl}
                         />
@@ -123,19 +144,40 @@ export default function PropertyDetailScreen() {
             {/* 3D Viewer - 3/4 screen */}
             <View style={styles.viewerSection}>
                 {viewMode === 'exterior' ? (
-                    <ThreeDViewer
-                        visible={true}
-                        onClose={() => { }}
-                        modelUrl={modelUrl}
-                        propertyName={property.name}
-                        onEnterInterior={() => interiorUrl && setViewMode('interior')}
-                    />
+                    property.name === 'Skyline towers' ? (
+                        <SkylineExterior
+                            visible={true}
+                            onClose={() => { }}
+                            modelUrl={modelUrl}
+                            propertyName={property.name}
+                            onEnterInterior={() => {
+                                if (interiorUrl) setViewMode('interior');
+                            }}
+                        />
+                    ) : (
+                        <GraffitiExterior
+                            visible={true}
+                            onClose={() => { }}
+                            modelUrl={modelUrl}
+                            propertyName={property.name}
+                            onEnterInterior={() => {
+                                if (interiorUrl) setViewMode('interior');
+                            }}
+                        />
+                    )
                 ) : (
                     <View style={{ flex: 1 }}>
-                        <InteriorViewer
-                            visible={true}
-                            modelUrl={interiorUrl}
-                        />
+                        {property.name === 'Skyline towers' ? (
+                            <SkylineInterior
+                                visible={true}
+                                modelUrl={interiorUrl}
+                            />
+                        ) : (
+                            <GraffitiInterior
+                                visible={true}
+                                modelUrl={interiorUrl}
+                            />
+                        )}
                         <TouchableOpacity
                             style={styles.backToExteriorBtn}
                             onPress={() => setViewMode('exterior')}

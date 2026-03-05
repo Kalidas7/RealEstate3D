@@ -2,16 +2,23 @@ import React, { useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { styles } from './styles';
-import { CameraMovementScript } from './CameraMovement';
-import { CameraMovementStyles } from './CameraMovement/styles';
+import { CameraMovementScript } from '../../../CameraMovement';
+import { CameraMovementStyles } from '../../../CameraMovement/styles';
 
-interface InteriorViewerProps {
+interface GraffitiInteriorProps {
   visible: boolean;
   modelUrl: string | null;
 }
 
-export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProps) {
+export default function GraffitiInterior({ visible, modelUrl }: GraffitiInteriorProps) {
   const [loading, setLoading] = useState(true);
+
+  // Debug log to trace when GraffitiInterior mounts
+  React.useEffect(() => {
+    if (visible) {
+      console.log(`[FILE EXECUTING: frontend/components/buildings/Graffiti/interior/index.tsx] Component mounted. Requested Model URL: ${modelUrl}`);
+    }
+  }, [visible, modelUrl]);
 
   if (!visible) return null;
 
@@ -175,8 +182,14 @@ export default function InteriorViewer({ visible, modelUrl }: InteriorViewerProp
       <WebView
         source={{ html: htmlContent }}
         style={styles.webview}
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
+        onLoadStart={() => {
+          console.log('[Interior Viewer] WebView started loading HTML canvas...');
+          setLoading(true);
+        }}
+        onLoadEnd={() => {
+          console.log('[Interior Viewer] WebView finished loading HTML canvas.');
+          setLoading(false);
+        }}
         originWhitelist={['*']}
         javaScriptEnabled={true}
         domStorageEnabled={true}
