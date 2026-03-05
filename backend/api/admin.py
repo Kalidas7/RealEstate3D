@@ -5,6 +5,21 @@ from .models import Property, Booking
 class PropertyAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'price')
     search_fields = ('name', 'location')
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('name', 'location', 'price', 'description', 'image')
+        }),
+        ('Property Details', {
+            'fields': ('bedrooms', 'bathrooms', 'area')
+        }),
+        ('3D Models', {
+            'fields': ('three_d_file', 'interior_file')
+        }),
+        ('3D Interaction Config', {
+            'description': 'These fields control the interactive 3D elements.',
+            'fields': ('interactive_mesh_names', 'interior_camera_nodes')
+        }),
+    )
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):

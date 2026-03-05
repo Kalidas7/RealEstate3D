@@ -1,37 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { styles } from './styles';
-import { CameraMovementScript } from '../../../CameraMovement';
-import { CameraMovementStyles } from '../../../CameraMovement/styles';
+// ─── Interior WebView HTML Generator ─────────────────────────────────────
+// Generates HTML for the interior 3D viewer with dynamic camera nodes.
 
-interface GraffitiInteriorProps {
-  visible: boolean;
-  modelUrl: string | null;
+import { generateCameraMovementScript } from '../CameraMovement';
+import { CameraMovementStyles } from '../CameraMovement/styles';
+
+export interface CameraNode {
+    label: string;
+    x: number;
+    y: number;
+    z: number;
 }
 
-export default function GraffitiInterior({ visible, modelUrl }: GraffitiInteriorProps) {
-  const [loading, setLoading] = useState(true);
+export function generateInteriorHtml(modelUrl: string, cameraNodes: CameraNode[]): string {
+    const cameraScript = generateCameraMovementScript(JSON.stringify(cameraNodes));
 
-  // Debug log to trace when GraffitiInterior mounts
-  React.useEffect(() => {
-    if (visible) {
-      console.log(`[FILE EXECUTING: frontend/components/buildings/Graffiti/interior/index.tsx] Component mounted. Requested Model URL: ${modelUrl}`);
-    }
-  }, [visible, modelUrl]);
-
-  if (!visible) return null;
-
-  if (!modelUrl) {
-    return (
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderIcon}>🏠</Text>
-        <Text style={styles.placeholderText}>No interior model available</Text>
-      </View>
-    );
-  }
-
-  const htmlContent = `
+    return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -93,7 +76,7 @@ export default function GraffitiInterior({ visible, modelUrl }: GraffitiInterior
         let scene, camera, renderer, controls;
         let model;
 
-        ${CameraMovementScript}
+        ${cameraScript}
 
         function init() {
           try {
@@ -105,10 +88,15 @@ export default function GraffitiInterior({ visible, modelUrl }: GraffitiInterior
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
             document.getElementById('container').appendChild(renderer.domElement);
+
+            // Neutral studio environment
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            pmremGenerator.compileEquirectangularShader();
+            scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
@@ -127,7 +115,6 @@ export default function GraffitiInterior({ visible, modelUrl }: GraffitiInterior
               (gltf) => {
                 model = gltf.scene;
                 
-                // Center and scale model
                 const box = new THREE.Box3().setFromObject(model);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
@@ -176,33 +163,4 @@ export default function GraffitiInterior({ visible, modelUrl }: GraffitiInterior
     </body>
     </html>
     `;
-
-  return (
-    <View style={styles.container}>
-      <WebView
-        source={{ html: htmlContent }}
-        style={styles.webview}
-        onLoadStart={() => {
-          console.log('[Interior Viewer] WebView started loading HTML canvas...');
-          setLoading(true);
-        }}
-        onLoadEnd={() => {
-          console.log('[Interior Viewer] WebView finished loading HTML canvas.');
-          setLoading(false);
-        }}
-        originWhitelist={['*']}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        allowFileAccess={true}
-        mixedContentMode="always"
-        onError={() => setLoading(false)}
-      />
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#667eea" />
-          <Text style={styles.loadingText}>Loading Interior...</Text>
-        </View>
-      )}
-    </View>
-  );
 }

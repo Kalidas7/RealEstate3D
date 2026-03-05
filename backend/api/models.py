@@ -41,7 +41,18 @@ class Property(models.Model):
 
     # Comma-separated mesh names that should be highlighted green and trigger Enter Interior
     # Example: "Geom3D106, Geom3D022, Geom3D050, Geom3D101"
-    interactive_mesh_names = models.TextField(blank=True, default='')
+    interactive_mesh_names = models.TextField(
+        blank=True, default='',
+        help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022, Geom3D050'
+    )
+
+    # Comma-separated interior camera nodes: "Label:x:y:z, Label:x:y:z, ..."
+    # First node = entry point. Coords are in Blender space (Z-up).
+    # Example: "Living Room:0.21:-0.1:1.59, Kitchen:-3.68:-2.36:1.88"
+    interior_camera_nodes = models.TextField(
+        blank=True, default='',
+        help_text='Format: Label:x:y:z (Blender coords). First = entry point. Example: Living Room:0.21:-0.1:1.59, Kitchen:-3.68:-2.36:1.88'
+    )
 
     def __str__(self):
         return self.name

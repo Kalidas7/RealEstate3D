@@ -5,8 +5,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import SkylineExterior from '@/components/buildings/Skyline towers/exterior';
 import GraffitiExterior from '@/components/buildings/Graffiti/exterior';
-import GraffitiInterior from '@/components/buildings/Graffiti/interior';
-import SkylineInterior from '@/components/buildings/Skyline towers/interior';
+import InteriorModal from '@/components/InteriorModal';
 import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from './styles';
@@ -83,6 +82,21 @@ export default function PropertyDetailScreen() {
             : [],
     };
 
+    // Parse interior camera nodes from API: "Label:x:y:z, Label:x:y:z"
+    const cameraNodesStr = property.interior_camera_nodes || '';
+    const cameraNodes = cameraNodesStr
+        ? cameraNodesStr.split(',').map((s: string) => {
+            const parts = s.trim().split(':');
+            if (parts.length < 4) return null;
+            return {
+                label: parts[0].trim(),
+                x: parseFloat(parts[1]),
+                y: parseFloat(parts[2]),
+                z: parseFloat(parts[3]),
+            };
+        }).filter(Boolean)
+        : [];
+
     if (isFullscreen) {
         return (
             <View style={styles.container}>
@@ -112,15 +126,11 @@ export default function PropertyDetailScreen() {
                                 }}
                             />
                         )
-                    ) : property.name === 'Skyline towers' ? (
-                        <SkylineInterior
-                            visible={true}
-                            modelUrl={interiorUrl}
-                        />
                     ) : (
-                        <GraffitiInterior
+                        <InteriorModal
                             visible={true}
                             modelUrl={interiorUrl}
+                            cameraNodes={cameraNodes}
                         />
                     )}
                 </View>
@@ -180,17 +190,11 @@ export default function PropertyDetailScreen() {
                     )
                 ) : (
                     <View style={{ flex: 1 }}>
-                        {property.name === 'Skyline towers' ? (
-                            <SkylineInterior
-                                visible={true}
-                                modelUrl={interiorUrl}
-                            />
-                        ) : (
-                            <GraffitiInterior
-                                visible={true}
-                                modelUrl={interiorUrl}
-                            />
-                        )}
+                        <InteriorModal
+                            visible={true}
+                            modelUrl={interiorUrl}
+                            cameraNodes={cameraNodes}
+                        />
                         <TouchableOpacity
                             style={styles.backToExteriorBtn}
                             onPress={() => setViewMode('exterior')}
