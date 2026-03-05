@@ -17,7 +17,7 @@ class PropertyAdmin(admin.ModelAdmin):
         }),
         ('3D Interaction Config', {
             'description': 'These fields control the interactive 3D elements.',
-            'fields': ('interactive_mesh_names', 'interior_camera_nodes')
+            'fields': ('interactive_mesh_names',)
         }),
     )
 

@@ -1,20 +1,36 @@
-// ─── Interior WebView HTML Generator ─────────────────────────────────────
-// Generates HTML for the interior 3D viewer with dynamic camera nodes.
+import React, { useState } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { WebView } from 'react-native-webview';
+import { styles } from './styles';
+import { CameraMovementScript } from '../../../CameraMovement';
+import { CameraMovementStyles } from '../../../CameraMovement/styles';
 
-import { generateCameraMovementScript } from '../CameraMovement';
-import { CameraMovementStyles } from '../CameraMovement/styles';
-
-export interface CameraNode {
-    label: string;
-    x: number;
-    y: number;
-    z: number;
+interface SkylineInteriorProps {
+  visible: boolean;
+  modelUrl: string | null;
 }
 
-export function generateInteriorHtml(modelUrl: string, cameraNodes: CameraNode[]): string {
-    const cameraScript = generateCameraMovementScript(JSON.stringify(cameraNodes));
+export default function SkylineInterior({ visible, modelUrl }: SkylineInteriorProps) {
+  const [loading, setLoading] = useState(true);
 
-    return `
+  React.useEffect(() => {
+    if (visible) {
+      console.log(`[FILE EXECUTING: frontend/components/buildings/Skyline towers/interior/index.tsx] Component mounted. Requested Model URL: ${modelUrl}`);
+    }
+  }, [visible, modelUrl]);
+
+  if (!visible) return null;
+
+  if (!modelUrl) {
+    return (
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderIcon}>🏠</Text>
+        <Text style={styles.placeholderText}>No interior model available</Text>
+      </View>
+    );
+  }
+
+  const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -76,7 +92,7 @@ export function generateInteriorHtml(modelUrl: string, cameraNodes: CameraNode[]
         let scene, camera, renderer, controls;
         let model;
 
-        ${cameraScript}
+        ${CameraMovementScript}
 
         function init() {
           try {
@@ -88,15 +104,10 @@ export function generateInteriorHtml(modelUrl: string, cameraNodes: CameraNode[]
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
             document.getElementById('container').appendChild(renderer.domElement);
-
-            // Neutral studio environment
-            const pmremGenerator = new THREE.PMREMGenerator(renderer);
-            pmremGenerator.compileEquirectangularShader();
-            scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
@@ -163,4 +174,33 @@ export function generateInteriorHtml(modelUrl: string, cameraNodes: CameraNode[]
     </body>
     </html>
     `;
+
+  return (
+    <View style={styles.container}>
+      <WebView
+        source={{ html: htmlContent }}
+        style={styles.webview}
+        onLoadStart={() => {
+          console.log('[Skyline Interior] WebView started loading HTML canvas...');
+          setLoading(true);
+        }}
+        onLoadEnd={() => {
+          console.log('[Skyline Interior] WebView finished loading HTML canvas.');
+          setLoading(false);
+        }}
+        originWhitelist={['*']}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        allowFileAccess={true}
+        mixedContentMode="always"
+        onError={() => setLoading(false)}
+      />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#667eea" />
+          <Text style={styles.loadingText}>Loading Interior...</Text>
+        </View>
+      )}
+    </View>
+  );
 }

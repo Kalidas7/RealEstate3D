@@ -1,24 +1,21 @@
+export const CameraMovementScript = `
 // ========================================
-// Camera Movement — Dynamic Nodes with Adjacency Navigation
+// Camera Movement — 2 Nodes, Fixed + 360
 // ========================================
-// Accepts nodes from the backend via initializeCameraNodes().
-// First node = entry point. Adjacent nodes get visible buttons.
-// All other nodes are in a collapsible "All Rooms" menu.
 
-export function generateCameraMovementScript(nodesJson: string): string {
-  return `
-// ---------- DYNAMIC NODES (injected from backend) ----------
+// ---------- BLENDER COORDS ----------
 
-var rawNodes = ${nodesJson};
+var blenderNodes = {
+  Node_A: { x: 0.21206,  y: -0.097888, z: 1.5867 },
+  Node_B: { x: -3.6825, y: -2.357,   z: 1.8756 }
+};
 
 // ---------- STATE ----------
 
 var worldNodes      = {};
-var nodeLabels      = [];
-var currentNodeName = '';
+var currentNodeName = 'Node_A';
 var isMovingCamera  = false;
 var nodeMeshes      = [];
-var adjacencyRadius = 8; // Blender-space distance threshold for adjacency
 
 // ---------- UTILITIES ----------
 
@@ -27,36 +24,9 @@ function toThreeCoords(coords) {
   return new THREE.Vector3(coords.x, coords.z, -coords.y);
 }
 
-function getDistance(a, b) {
-  return Math.sqrt(
-    Math.pow(a.x - b.x, 2) +
-    Math.pow(a.y - b.y, 2) +
-    Math.pow(a.z - b.z, 2)
-  );
-}
-
-function getAdjacentNodes(nodeName) {
-  var current = worldNodes[nodeName];
-  if (!current) return [];
-  var adjacent = [];
-  for (var i = 0; i < nodeLabels.length; i++) {
-    var name = nodeLabels[i];
-    if (name === nodeName) continue;
-    var dist = current.distanceTo(worldNodes[name]);
-    adjacent.push({ name: name, dist: dist });
-  }
-  // Sort by distance, take the closest ones within radius
-  adjacent.sort(function(a, b) { return a.dist - b.dist; });
-  // If no nodes within radius, show the 3 closest anyway
-  var withinRadius = adjacent.filter(function(a) { return a.dist < adjacencyRadius; });
-  if (withinRadius.length === 0 && adjacent.length > 0) {
-    withinRadius = adjacent.slice(0, Math.min(3, adjacent.length));
-  }
-  return withinRadius.map(function(a) { return a.name; });
-}
-
 // ---------- CAMERA ACTIONS ----------
 
+// Place camera exactly at node — fixed, no offset
 function placeCameraAtNode(nodeName) {
   var pos = worldNodes[nodeName];
   if (!pos) return;
@@ -64,17 +34,14 @@ function placeCameraAtNode(nodeName) {
   controls.target.copy(pos.clone().add(new THREE.Vector3(0, 0, -0.01)));
   controls.update();
   currentNodeName = nodeName;
-  updateNavUI();
+  updateNavButton();
 }
 
+// Smooth fly to a node
 window.moveCameraToNode = function(nodeName) {
   if (isMovingCamera || !worldNodes[nodeName]) return;
   if (nodeName === currentNodeName) return;
   isMovingCamera = true;
-
-  // Close menu if open
-  var menu = document.getElementById('__allRoomsMenu');
-  if (menu) menu.style.display = 'none';
 
   var startPos    = camera.position.clone();
   var startTarget = controls.target.clone();
@@ -100,13 +67,13 @@ window.moveCameraToNode = function(nodeName) {
       isMovingCamera  = false;
       currentNodeName = nodeName;
       applyFixedControls();
-      updateNavUI();
+      updateNavButton();
     }
   }
   requestAnimationFrame(animate);
 };
 
-// ---------- FIXED CONTROLS ----------
+// ---------- FIXED CONTROLS (rotate only, no movement) ----------
 
 function applyFixedControls() {
   controls.enablePan     = false;
@@ -118,101 +85,36 @@ function applyFixedControls() {
   controls.maxDistance    = 0.01;
 }
 
-// ---------- NAVIGATION UI ----------
+// ---------- NAV BUTTON ----------
 
-function updateNavUI() {
-  // Get adjacent nodes
-  var adjacent = getAdjacentNodes(currentNodeName);
-  var nonAdjacent = nodeLabels.filter(function(n) {
-    return n !== currentNodeName && adjacent.indexOf(n) === -1;
-  });
+var navBtn = null;
 
-  // Adjacent buttons container
-  var container = document.getElementById('__adjBtns');
-  if (!container) return;
-  container.innerHTML = '';
-
-  for (var i = 0; i < adjacent.length; i++) {
-    (function(name) {
-      var btn = document.createElement('button');
-      btn.className = 'adj-btn';
-      btn.innerText = name;
-      btn.onclick = function() { window.moveCameraToNode(name); };
-      container.appendChild(btn);
-    })(adjacent[i]);
-  }
-
-  // "All Rooms" menu button — only show if there are non-adjacent nodes
-  var menuBtn = document.getElementById('__menuBtn');
-  if (menuBtn) {
-    menuBtn.style.display = nonAdjacent.length > 0 ? 'block' : 'none';
-  }
-
-  // Update menu contents
-  var menu = document.getElementById('__allRoomsMenu');
-  if (menu) {
-    menu.innerHTML = '';
-    // Add current location header
-    var header = document.createElement('div');
-    header.className = 'menu-header';
-    header.innerText = '📍 ' + currentNodeName;
-    menu.appendChild(header);
-
-    var allOther = nodeLabels.filter(function(n) { return n !== currentNodeName; });
-    for (var j = 0; j < allOther.length; j++) {
-      (function(name) {
-        var item = document.createElement('button');
-        item.className = 'menu-item';
-        // Mark adjacent nodes visually
-        if (adjacent.indexOf(name) !== -1) {
-          item.innerText = '● ' + name;
-        } else {
-          item.innerText = name;
-        }
-        item.onclick = function() {
-          window.moveCameraToNode(name);
-          menu.style.display = 'none';
-        };
-        menu.appendChild(item);
-      })(allOther[j]);
-    }
-  }
+function updateNavButton() {
+  if (!navBtn) return;
+  var next  = currentNodeName === 'Node_A' ? 'Node_B' : 'Node_A';
+  var label = next === 'Node_A' ? 'Room A' : 'Room B';
+  navBtn.innerText = 'Go to ' + label;
+  navBtn.onclick = function() { window.moveCameraToNode(next); };
 }
 
-function createNavUI() {
-  // Adjacent buttons row
-  var container = document.createElement('div');
-  container.id = '__adjBtns';
-  container.className = 'adj-btns-container';
-  document.body.appendChild(container);
+function createNavButton() {
+  var old = document.getElementById('__navBtn');
+  if (old) old.remove();
 
-  // "All Rooms" menu toggle
-  var menuBtn = document.createElement('button');
-  menuBtn.id = '__menuBtn';
-  menuBtn.className = 'menu-toggle-btn';
-  menuBtn.innerText = '☰';
-  menuBtn.onclick = function() {
-    var menu = document.getElementById('__allRoomsMenu');
-    if (menu) {
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    }
-  };
-  document.body.appendChild(menuBtn);
-
-  // All Rooms dropdown menu
-  var menu = document.createElement('div');
-  menu.id = '__allRoomsMenu';
-  menu.className = 'all-rooms-menu';
-  menu.style.display = 'none';
-  document.body.appendChild(menu);
+  navBtn = document.createElement('button');
+  navBtn.id = '__navBtn';
+  navBtn.className = 'nav-btn';
+  document.body.appendChild(navBtn);
+  updateNavButton();
 }
 
 // ---------- ORANGE MARKER SPHERES ----------
 
 function createMarkerSpheres() {
   var geo = new THREE.SphereGeometry(0.12, 24, 24);
-  for (var i = 0; i < nodeLabels.length; i++) {
-    var name = nodeLabels[i];
+  var names = Object.keys(worldNodes);
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i];
     var mat = new THREE.MeshBasicMaterial({
       color: 0xff6600,
       transparent: true,
@@ -243,25 +145,21 @@ function onSphereClicked(event) {
 // ---------- INIT ----------
 
 window.initializeCameraNodes = function(center, scale) {
-  // Convert raw nodes to world coords
-  for (var i = 0; i < rawNodes.length; i++) {
-    var node = rawNodes[i];
-    nodeLabels.push(node.label);
-    worldNodes[node.label] = toThreeCoords({ x: node.x, y: node.y, z: node.z })
-      .sub(center).multiplyScalar(scale);
+  var names = Object.keys(blenderNodes);
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i];
+    var raw  = blenderNodes[name];
+    worldNodes[name] = toThreeCoords(raw).sub(center).multiplyScalar(scale);
   }
 
   applyFixedControls();
   createMarkerSpheres();
-  createNavUI();
+  createNavButton();
 
   window.nodeRaycaster = new THREE.Raycaster();
   window.addEventListener('pointerdown', onSphereClicked, false);
 
-  // Start at first node (entry point)
-  if (nodeLabels.length > 0) {
-    placeCameraAtNode(nodeLabels[0]);
-  }
+  // Start at Node A
+  placeCameraAtNode('Node_A');
 };
 `;
-}
