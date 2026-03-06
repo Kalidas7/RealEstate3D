@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -9,6 +9,7 @@ import GraffitiInterior from '@/components/buildings/Graffiti/interior';
 import SkylineInterior from '@/components/buildings/Skyline towers/interior';
 import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { styles } from './styles';
 
 const API_BASE = 'https://realestate3d.onrender.com';
@@ -19,8 +20,27 @@ export default function PropertyDetailScreen() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [viewMode, setViewMode] = useState<'exterior' | 'interior'>('exterior');
     const [isBookingModalVisible, setBookingModalVisible] = useState(false);
+    const { addViewed } = useLikedViewed();
 
     const property = params.property ? JSON.parse(params.property as string) : null;
+
+    // Track viewed property
+    useEffect(() => {
+        if (property) {
+            addViewed({
+                id: property.id,
+                name: property.name,
+                location: property.location,
+                price: property.price,
+                image: property.image,
+                bedrooms: property.bedrooms,
+                bathrooms: property.bathrooms,
+                area: property.area,
+                description: property.description,
+                source: property.source || 'sponsored',
+            });
+        }
+    }, []);
 
     const handleBookingConfirm = async (date: string, time: string) => {
         try {

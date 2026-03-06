@@ -158,7 +158,7 @@ export default function HomeScreen() {
     fetchListedProperties();
   };
 
-  const handlePropertyPress = (property: Property) => {
+  const handlePropertyPress = (property: any) => {
     router.push({
       pathname: '/property/[id]',
       params: { id: property.id, property: JSON.stringify(property) },
@@ -280,7 +280,7 @@ export default function HomeScreen() {
               image={item.image}
               bedrooms={item.bedrooms}
               area={item.area}
-              onPress={() => handlePropertyPress(item)}
+              onPress={() => handlePropertyPress({ ...item, source: 'sponsored' })}
             />
           )}
         />
@@ -311,7 +311,7 @@ export default function HomeScreen() {
             bathrooms={item.bathrooms}
             area={item.area}
             description={item.description}
-            onPress={() => handlePropertyPress(item as any)}
+            onPress={() => handlePropertyPress({ ...item, source: 'listed' } as any)}
           />
         ))
       ) : (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -17,6 +18,7 @@ interface PropertyListCardProps {
 }
 
 export default function PropertyListCard({
+    id,
     name,
     location,
     price,
@@ -27,6 +29,13 @@ export default function PropertyListCard({
     description,
     onPress,
 }: PropertyListCardProps) {
+    const { isLiked, toggleLike } = useLikedViewed();
+    const liked = isLiked(id, 'listed');
+
+    const handleLike = () => {
+        toggleLike({ id, name, location, price, image, bedrooms, bathrooms, area, description, source: 'listed' }, 'listed');
+    };
+
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
             {/* Left: Thumbnail */}
@@ -36,7 +45,9 @@ export default function PropertyListCard({
             <View style={styles.info}>
                 <View style={styles.topRow}>
                     <Text style={styles.name} numberOfLines={1}>{name}</Text>
-                    <Text style={styles.chevron}>›</Text>
+                    <TouchableOpacity onPress={handleLike} activeOpacity={0.7} style={styles.likeButton}>
+                        <Text style={styles.likeIcon}>{liked ? '❤️' : '🤍'}</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={styles.location} numberOfLines={1}>📍 {location}</Text>
@@ -107,10 +118,17 @@ const styles = StyleSheet.create({
         color: '#fff',
         flex: 1,
     },
-    chevron: {
-        fontSize: 22,
-        color: 'rgba(255,255,255,0.4)',
+    likeButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
         marginLeft: 8,
+    },
+    likeIcon: {
+        fontSize: 16,
     },
     location: {
         fontSize: 12,

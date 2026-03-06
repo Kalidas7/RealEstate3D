@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -21,6 +22,7 @@ interface SponsoredCardProps {
 }
 
 export default function SponsoredCard({
+    id,
     name,
     location,
     price,
@@ -29,6 +31,13 @@ export default function SponsoredCard({
     area,
     onPress,
 }: SponsoredCardProps) {
+    const { isLiked, toggleLike } = useLikedViewed();
+    const liked = isLiked(id, 'sponsored');
+
+    const handleLike = () => {
+        toggleLike({ id, name, location, price, image, bedrooms, bathrooms: 0, area, source: 'sponsored' }, 'sponsored');
+    };
+
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
             <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
@@ -41,6 +50,11 @@ export default function SponsoredCard({
             <View style={styles.exploreBadge}>
                 <Text style={styles.exploreText}>Sponsored ⭐</Text>
             </View>
+
+            {/* Like button */}
+            <TouchableOpacity style={styles.likeButton} onPress={handleLike} activeOpacity={0.7}>
+                <Text style={styles.likeIcon}>{liked ? '❤️' : '🤍'}</Text>
+            </TouchableOpacity>
 
             {/* Bottom info */}
             <View style={styles.content}>
@@ -106,6 +120,22 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '600',
+    },
+    likeButton: {
+        position: 'absolute',
+        top: 18,
+        left: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    likeIcon: {
+        fontSize: 18,
     },
     content: {
         position: 'absolute',
