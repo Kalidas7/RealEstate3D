@@ -22,6 +22,7 @@ class UserLike(models.Model):
 class Property(models.Model):
     name = models.CharField(max_length=255) # e.g., "Skyline Towers"
     location = models.CharField(max_length=255) # e.g., "Downtown, City Center"
+    location_link = models.URLField(max_length=500, null=True, blank=True)
     price = models.CharField(max_length=100)  # e.g., "$430,000"
     
     # The Card Image for the Home Page
@@ -53,6 +54,7 @@ class Property(models.Model):
 class ListedProperty(models.Model):
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
+    location_link = models.URLField(max_length=500, null=True, blank=True)
     price = models.CharField(max_length=100)
     image = models.ImageField(upload_to='listed_property_images/')
     three_d_file = models.FileField(upload_to='3d_models/', blank=True, null=True)

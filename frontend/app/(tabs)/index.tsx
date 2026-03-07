@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, View, Text, TextInput,
   TouchableOpacity, FlatList, Dimensions, RefreshControl,
-  ActivityIndicator, ScrollView, Image
+  ActivityIndicator, ScrollView, Image, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -246,13 +246,10 @@ export default function HomeScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          <TouchableOpacity onPress={() => setIsFilterVisible(!isFilterVisible)} style={styles.filterIconButton}>
+            <Ionicons name="options-outline" size={20} color={isFilterVisible ? "#667eea" : "#fff"} />
+          </TouchableOpacity>
         </View>
-
-        {/* Filters */}
-        <TouchableOpacity style={styles.filterButton} onPress={() => setIsFilterVisible(!isFilterVisible)}>
-          <Ionicons name="options-outline" size={18} color="#fff" />
-          <Text style={styles.filterText}>Filters</Text>
-        </TouchableOpacity>
 
         {isFilterVisible && (
           <View style={styles.filterOptionsContainer}>
@@ -391,13 +388,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   searchContainer: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderRadius: 15,
     paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginBottom: 15,
+    paddingVertical: Platform.OS === 'android' ? 10 : 12,
+    marginBottom: 6,
   },
   searchIcon: {
     fontSize: 18,
@@ -407,25 +405,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#fff',
+    paddingVertical: 0,
   },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 6,
+  filterIconButton: {
+    padding: 4,
+    marginLeft: 8,
   },
-  filterIcon: { fontSize: 16 },
-  filterText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   filterOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 10,
+    marginTop: 4,
     marginBottom: 6,
   },
   filterOption: {

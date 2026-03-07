@@ -82,17 +82,19 @@ export default function BookingModal({ visible, onClose, propertyName, onConfirm
             transparent={true}
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
-                {/* Background dark blur */}
-                <BlurView
-                    intensity={40}
-                    tint="dark"
-                    style={StyleSheet.absoluteFill}
-                />
+            <View style={[styles.overlay, Platform.OS === 'android' && { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
+                {/* Background dark blur (iOS only) */}
+                {Platform.OS === 'ios' && (
+                    <BlurView
+                        intensity={40}
+                        tint="dark"
+                        style={StyleSheet.absoluteFill}
+                    />
+                )}
 
                 {/* The Modal Card */}
                 <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)']}
+                    colors={Platform.OS === 'android' ? ['#1a1a2e', '#1a1a2e'] : ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.modalCard}

@@ -22,6 +22,7 @@ interface PropertyDetails {
     name: string;
     location: string;
     image: string;
+    location_link?: string;
 }
 
 interface Booking {
@@ -99,26 +100,69 @@ export default function BookingsScreen() {
         }
     };
 
-    const handleDirections = () => {
-        const url = "https://www.google.com/maps/place/Graffiti+by+Sree+Dhanya+Homes/@8.5043221,76.9111129,975m/data=!3m2!1e3!4b1!4m6!3m5!1s0x3b05bd5bec064e77:0x96736b1bf5180cff!8m2!3d8.5043221!4d76.9111129!16s%2Fg%2F11k9b5l4mr!18m1!1e1?entry=ttu&g_ep=EgoyMDI2MDIyMi4wIKXMDSoASAFQAw%3D%3D";
-        Linking.openURL(url);
+    const handleDirections = (link?: string) => {
+        if (link) {
+            Linking.openURL(link);
+        } else {
+            Alert.alert("Location Unavailable", "No directions link has been provided for this property yet.");
+        }
+    };
+
+    const parseBookingDateTime = (dateStr: string, timeStr: string) => {
+        const months: { [key: string]: number } = {
+            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+        };
+        const parts = dateStr.trim().split(' ');
+        let dayStr = parts[0];
+        let monthStr = parts.length > 1 ? parts[1] : '';
+
+        // Handle both "DD MMM" and "MMM DD" formats
+        if (isNaN(parseInt(dayStr, 10)) && parts.length > 1) {
+            // It's likely "MMM DD" (e.g., iOS returns "Aug 15")
+            monthStr = parts[0];
+            dayStr = parts[1];
+        }
+
+        const day = parseInt(dayStr || '1', 10);
+        const month = months[monthStr] !== undefined ? months[monthStr] : new Date().getMonth();
+
+        const timeParts = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        let hours = 9;
+        let mins = 0;
+        if (timeParts) {
+            hours = parseInt(timeParts[1], 10);
+            mins = parseInt(timeParts[2], 10);
+            const ampm = timeParts[3].toUpperCase();
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+
+        const now = new Date();
+        const year = now.getFullYear();
+        let eventDate = new Date(year, month, day, hours, mins, 0);
+
+        // If the date looks like it's from more than 11 months ago (e.g. it's Jan now and we booked for Dec)
+        // push it to LAST year. If it's Jan now and we book for Dec, it's THIS year. 
+        // Wait, property bookings are future-facing.
+        // If the month is significantly smaller than the current month (e.g. booked for Jan, now is Dec),
+        // push the event to NEXT year.
+        if (month < now.getMonth() - 6) {
+            eventDate = new Date(year + 1, month, day, hours, mins, 0);
+        } else if (month > now.getMonth() + 6) {
+            // In case someone books for a date 6+ months ago (unlikely, but defensive)
+            eventDate = new Date(year - 1, month, day, hours, mins, 0);
+        }
+
+        return eventDate;
     };
 
     const handleAddToCalendar = async (booking: Booking) => {
         const title = `${booking.property_details?.name || 'Property'} Visit`;
-        const details = `Property viewing appointment for ${booking.property_details?.name || 'Property'}.`;
+        const link = booking.property_details?.location_link ? `\n\nDirections: ${booking.property_details.location_link}` : '';
+        const details = `Property viewing appointment for ${booking.property_details?.name || 'Property'}.${link}`;
 
-        const currentYear = new Date().getFullYear();
-        let eventDate = new Date(`${booking.date} ${currentYear} ${booking.time}`);
-        if (isNaN(eventDate.getTime())) {
-            eventDate = new Date();
-        }
-
-        if (eventDate.getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000) {
-            eventDate = new Date(`${booking.date} ${currentYear + 1} ${booking.time}`);
-        }
-
-        const startDate = eventDate;
+        const startDate = parseBookingDateTime(booking.date, booking.time);
         const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
         if (Platform.OS === 'ios') {
@@ -138,9 +182,11 @@ export default function BookingsScreen() {
                             startDate,
                             endDate,
                             notes: details,
+                            alarms: [{ relativeOffset: -60, method: Calendar.AlarmMethod.ALERT }]
                         });
                         Alert.alert("Success", "Event added to your Apple Calendar!");
-                        Linking.openURL(`calshow:${startDate.getTime() / 1000}`);
+                        const appleEpochOffset = 978307200; // Seconds between Jan 1 1970 and Jan 1 2001
+                        Linking.openURL(`calshow:${(startDate.getTime() / 1000) - appleEpochOffset}`);
                     } catch (e) {
                         console.error("Calendar Add Error:", e);
                         Alert.alert("Error", "Could not create event in Apple Calendar.");
@@ -229,7 +275,7 @@ export default function BookingsScreen() {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.actionBtnDirections}
-                                    onPress={handleDirections}
+                                    onPress={() => handleDirections(booking.property_details.location_link)}
                                 >
                                     <Text style={styles.actionBtnDirectionsText}>Directions</Text>
                                     <Ionicons name="navigate" size={16} color="#4CAF50" style={{ marginLeft: 4 }} />
