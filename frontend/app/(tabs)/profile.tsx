@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, FlatList, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, FlatList, Animated, LayoutAnimation, Platform, UIManager, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,8 +31,14 @@ export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('profile');
-    const { likedProperties, refreshLiked, viewedProperties } = useLikedViewed();
+    const { likedProperties, refreshLiked, viewedProperties, clearAll } = useLikedViewed();
     const fadeAnim = useRef(new Animated.Value(1)).current;
+
+    // Edit Profile State
+    const [isEditing, setIsEditing] = useState(false);
+    const [editUsername, setEditUsername] = useState('');
+    const [editContact, setEditContact] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         loadUser();
@@ -56,9 +63,10 @@ export default function ProfileScreen() {
         try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
-                setUser(JSON.parse(userData));
-            } else {
-                router.replace('/');
+                const parsedUser = JSON.parse(userData);
+                setUser(parsedUser);
+                setEditUsername(parsedUser.username || '');
+                setEditContact(parsedUser.profile?.contact_number || '');
             }
         } catch (e) {
             console.error(e);
@@ -72,6 +80,7 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
+                        clearAll();
                         setUser(null);
                         await AsyncStorage.removeItem('user');
                         await AsyncStorage.removeItem('access_token');
@@ -81,7 +90,9 @@ export default function ProfileScreen() {
                     } catch (error) {
                         await AsyncStorage.clear();
                     } finally {
-                        router.replace({ pathname: '/', params: { logout: 'true' } });
+                        setTimeout(() => {
+                            router.replace({ pathname: '/', params: { logout: 'true' } });
+                        }, 100);
                     }
                 },
             },
@@ -93,6 +104,65 @@ export default function ProfileScreen() {
             pathname: '/property/[id]',
             params: { id: property.id, property: JSON.stringify(property) },
         });
+    };
+
+    const handlePickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets[0] && user) {
+            handleUpdateProfile(result.assets[0].uri);
+        }
+    };
+
+    const handleUpdateProfile = async (newProfilePicUri?: string) => {
+        if (!user) return;
+        setIsUpdating(true);
+
+        const formData = new FormData();
+        formData.append('email', user.email);
+
+        if (editUsername) formData.append('username', editUsername);
+        if (editContact) formData.append('contact_number', editContact);
+
+        if (newProfilePicUri) {
+            const uriParts = newProfilePicUri.split('.');
+            const fileType = uriParts[uriParts.length - 1];
+            // @ts-ignore
+            formData.append('profile_pic', {
+                uri: newProfilePicUri,
+                name: `photo.${fileType}`,
+                type: `image/${fileType}`,
+            });
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/profile/update/`, {
+                method: 'PUT',
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setUser(data.user);
+                await AsyncStorage.setItem('user', JSON.stringify(data.user));
+                setIsEditing(false);
+                if (!newProfilePicUri) {
+                    Alert.alert('Success', 'Profile updated successfully.');
+                }
+            } else {
+                Alert.alert('Update Failed', data.error || 'Something went wrong.');
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to connect to the server.');
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     if (!user) {
@@ -149,7 +219,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.profileSection}>
-                <View style={styles.avatarContainer}>
+                <TouchableOpacity style={styles.avatarContainer} onPress={handlePickImage} activeOpacity={0.8}>
                     {profilePicUrl ? (
                         <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
                     ) : (
@@ -157,8 +227,15 @@ export default function ProfileScreen() {
                             <Text style={styles.avatarText}>{user.email.charAt(0).toUpperCase()}</Text>
                         </View>
                     )}
-                </View>
+                    <View style={styles.editAvatarBadge}>
+                        <Ionicons name="camera" size={12} color="#fff" />
+                    </View>
+                </TouchableOpacity>
                 <Text style={styles.name}>{user.username}</Text>
+
+                <TouchableOpacity style={styles.editProfileBtn} onPress={() => setIsEditing(true)}>
+                    <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Tab Selector */}
@@ -265,6 +342,55 @@ export default function ProfileScreen() {
                     ) : renderEmptyState('viewed')
                 )}
             </Animated.View>
+
+            {/* Edit Profile Modal */}
+            <Modal visible={isEditing} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Edit Profile</Text>
+
+                        <Text style={styles.inputLabel}>Username</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={editUsername}
+                            onChangeText={setEditUsername}
+                            placeholder="Enter username"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                        />
+
+                        <Text style={styles.inputLabel}>Contact Number</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={editContact}
+                            onChangeText={setEditContact}
+                            placeholder="Enter contact number"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            keyboardType="phone-pad"
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalBtnCancel}
+                                onPress={() => setIsEditing(false)}
+                                disabled={isUpdating}
+                            >
+                                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.modalBtnSave}
+                                onPress={() => handleUpdateProfile()}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalBtnSaveText}>Save</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -302,7 +428,18 @@ const styles = StyleSheet.create({
         borderWidth: 3, borderColor: '#fff',
     },
     avatarText: { fontSize: 36, color: '#fff', fontWeight: 'bold' },
+    editAvatarBadge: {
+        position: 'absolute', bottom: 0, right: 0,
+        backgroundColor: '#4ade80', width: 28, height: 28,
+        borderRadius: 14, justifyContent: 'center', alignItems: 'center',
+        borderWidth: 2, borderColor: '#0a0a0a',
+    },
     name: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+    editProfileBtn: {
+        marginTop: 8, paddingHorizontal: 16, paddingVertical: 6,
+        borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    editProfileBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
     // Tab bar
     tabBar: {
@@ -428,4 +565,34 @@ const styles = StyleSheet.create({
         fontSize: 13, color: 'rgba(255,255,255,0.4)',
         textAlign: 'center', lineHeight: 20,
     },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center', alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%', backgroundColor: '#1a1a2e',
+        borderRadius: 24, padding: 24,
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 20, textAlign: 'center' },
+    inputLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6, marginLeft: 4 },
+    modalInput: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12, padding: 14, color: '#fff',
+        marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    },
+    modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
+    modalBtnCancel: {
+        flex: 1, padding: 14, borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center',
+    },
+    modalBtnCancelText: { color: '#fff', fontWeight: 'bold' },
+    modalBtnSave: {
+        flex: 1, padding: 14, borderRadius: 12,
+        backgroundColor: '#667eea', alignItems: 'center',
+    },
+    modalBtnSaveText: { color: '#fff', fontWeight: 'bold' },
 });

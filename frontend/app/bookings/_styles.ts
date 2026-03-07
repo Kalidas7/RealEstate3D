@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
         zIndex: 10,
     },
     backButton: {
-        display: 'none', // Removed for main tab display, matching Figma
+        paddingRight: 10,
     },
     headerTitle: {
         fontSize: 28,

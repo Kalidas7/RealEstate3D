@@ -112,6 +112,55 @@ def signup_user(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['PUT'])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def update_profile(request):
+    """
+    Updates the user's username, contact number, and profile picture.
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response({"error": "Email is required to identify the user."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email=email)
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # Update username if provided
+        username = request.data.get('username')
+        if username:
+            user.username = username
+            user.save()
+
+        # Update contact number if provided
+        contact_number = request.data.get('contact_number')
+        if contact_number is not None:
+            profile.contact_number = contact_number
+
+        # Update profile picture if provided
+        profile_pic = request.FILES.get('profile_pic')
+        if profile_pic:
+            profile.profile_pic = profile_pic
+
+        profile.save()
+
+        # Return updated user data (matching the login response format)
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'profile': {
+                'contact_number': profile.contact_number if profile.contact_number else '',
+                'profile_pic': request.build_absolute_uri(profile.profile_pic.url) if profile.profile_pic else None
+            }
+        }
+        return Response({"message": "Profile updated successfully", "user": user_data}, status=status.HTTP_200_OK)
+
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET', 'POST', 'DELETE'])
 def user_likes(request):
     """

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
 
@@ -13,6 +14,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const colorScheme = useColorScheme();
+  const { refreshLiked } = useLikedViewed();
   const isDark = colorScheme === 'dark';
 
   const [step, setStep] = useState<'email' | 'login' | 'signup'>('email');
@@ -118,6 +120,7 @@ export default function LoginScreen() {
           await AsyncStorage.setItem('access_token', data.access);
           await AsyncStorage.setItem('refresh_token', data.refresh);
           console.log('User data and tokens saved, navigating to tabs');
+          await refreshLiked();
           router.replace('/(tabs)');
         } else {
           Alert.alert('Login Failed', data.error);
@@ -165,6 +168,7 @@ export default function LoginScreen() {
       const data = await response.json();
       if (response.ok) {
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        await refreshLiked();
         router.replace('/(tabs)');
       } else {
         Alert.alert('Signup Failed', data.error);
@@ -311,6 +315,8 @@ export default function LoginScreen() {
               </View>
             )}
           </BlurView>
+
+          <Text style={styles.versionText}>Version 1.0.0</Text>
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -320,6 +326,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0a0a0a',
   },
   gradient: {
     flex: 1,
@@ -429,5 +436,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     marginTop: 5,
+  },
+  versionText: {
+    color: 'rgba(255, 255, 255, 0.3)',
+    textAlign: 'center',
+    marginTop: 24,
+    fontSize: 12,
   },
 });

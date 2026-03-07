@@ -29,6 +29,7 @@ interface LikedViewedContextType {
     syncLikedFromBackend: () => Promise<void>;
     viewedProperties: PropertyData[];
     addViewed: (property: PropertyData) => Promise<void>;
+    clearAll: () => void;
 }
 
 const LikedViewedContext = createContext<LikedViewedContextType | undefined>(undefined);
@@ -105,18 +106,15 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
             if (likesRes.ok) {
                 const likesData = await likesRes.json();
                 newIds = likesData.map((like: any) => like.liked_item_id);
-                setLikedIds(newIds);
             }
             if (propsRes.ok) {
                 newProps = await propsRes.json();
-                if (newProps.length > 0) {
-                    setLikedProperties(newProps);
-                }
             }
 
-            if (newIds.length > 0 || newProps.length > 0) {
-                await saveLikedToCache(newIds, newProps);
-            }
+            // Always update state and cache, even if 0 items, to overwrite stale data
+            setLikedIds(newIds);
+            setLikedProperties(newProps);
+            await saveLikedToCache(newIds, newProps);
         } catch (error) {
             console.error('Error syncing liked from backend:', error);
         }
@@ -200,11 +198,17 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         });
     }, []);
 
+    const clearAll = useCallback(() => {
+        setLikedIds([]);
+        setLikedProperties([]);
+        setViewedProperties([]);
+    }, []);
+
     return (
         <LikedViewedContext.Provider value={{
             likedIds, toggleLike, isLiked,
             likedProperties, refreshLiked, syncLikedFromBackend,
-            viewedProperties, addViewed,
+            viewedProperties, addViewed, clearAll,
         }}>
             {children}
         </LikedViewedContext.Provider>

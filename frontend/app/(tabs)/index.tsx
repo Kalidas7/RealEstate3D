@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, View, Text, TextInput,
   TouchableOpacity, FlatList, Dimensions, RefreshControl,
-  ActivityIndicator, ScrollView
+  ActivityIndicator, ScrollView, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -63,8 +64,13 @@ export default function HomeScreen() {
 
   const { syncLikedFromBackend } = useLikedViewed();
 
+  useFocusEffect(
+    useCallback(() => {
+      loadUser();
+    }, [])
+  );
+
   useEffect(() => {
-    loadUser();
     fetchProperties();
     fetchListedProperties();
     syncLikedFromBackend();
@@ -120,8 +126,6 @@ export default function HomeScreen() {
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
         setUser(JSON.parse(userData));
-      } else {
-        router.replace('/');
       }
     } catch (e) {
       console.error(e);
@@ -206,6 +210,10 @@ export default function HomeScreen() {
     );
   }
 
+  const profilePicUrl = user?.profile?.profile_pic
+    ? (user.profile.profile_pic.startsWith('http') ? user.profile.profile_pic : `${API_URL.replace('/api', '')}${user.profile.profile_pic}`)
+    : null;
+
   return (
     <ScrollView
       style={styles.container}
@@ -219,8 +227,12 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Discover</Text>
             <Text style={styles.title}>Properties</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton}>
-            <Ionicons name="person-outline" size={20} color="#fff" />
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton} activeOpacity={0.8}>
+            {profilePicUrl ? (
+              <Image source={{ uri: profilePicUrl }} style={{ width: 45, height: 45, borderRadius: 22.5 }} />
+            ) : (
+              <Ionicons name="person-outline" size={20} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
 
