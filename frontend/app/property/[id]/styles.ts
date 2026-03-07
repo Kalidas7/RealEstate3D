@@ -197,6 +197,24 @@ export const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
     },
+    amenityDistance: {
+        fontSize: 9,
+        color: 'rgba(255, 255, 255, 0.45)',
+        marginTop: -4,
+    },
+    amenitySectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 24,
+        marginBottom: 12,
+    },
+    nearbyIcon: {
+        width: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 
     // ─── Trends Cards ───────────────────────────────────────
     trendCard: {

@@ -213,6 +213,28 @@ export default function PropertyDetailScreen() {
                     </View>
                 ))}
             </View>
+
+            <View style={styles.amenitySectionHeader}>
+                <Ionicons name="location" size={18} color="#4ade80" />
+                <Text style={styles.sectionTitle}>Nearby Features</Text>
+            </View>
+
+            <View style={styles.amenitiesGrid}>
+                {[
+                    { icon: 'medical-outline', label: 'City Hospital', dist: '0.5 km', color: '#ff6b6b' },
+                    { icon: 'school-outline', label: 'International School', dist: '1.2 km', color: '#4facfe' },
+                    { icon: 'bag-outline', label: 'Metro Mall', dist: '0.8 km', color: '#a18cd1' },
+                    { icon: 'train-outline', label: 'Metro Station', dist: '0.3 km', color: '#48c6ef' },
+                    { icon: 'cafe-outline', label: 'Cafe & Restaurants', dist: '0.2 km', color: '#fccb90' },
+                    { icon: 'leaf-outline', label: 'Central Park', dist: '1.0 km', color: '#84fab0' },
+                ].map((item, index) => (
+                    <View key={index} style={styles.amenityCard}>
+                        <Ionicons name={item.icon as any} size={26} color={item.color} />
+                        <Text style={styles.amenityLabel}>{item.label}</Text>
+                        <Text style={styles.amenityDistance}>Distance: {item.dist}</Text>
+                    </View>
+                ))}
+            </View>
         </>
     );
 
