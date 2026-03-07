@@ -6,8 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import SkylineExterior from '@/components/buildings/Skyline towers/exterior';
 import GraffitiExterior from '@/components/buildings/Graffiti/exterior';
-import GraffitiInterior from '@/components/buildings/Graffiti/interior';
-import SkylineInterior from '@/components/buildings/Skyline towers/interior';
+import Interior3DModal from '@/components/Interior3DModal';
 import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
@@ -136,10 +135,8 @@ export default function PropertyDetailScreen() {
                                 propertyName={property.name} buildingConfig={exteriorConfig}
                                 onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }} />
                         )
-                    ) : property.name === 'Skyline towers' ? (
-                        <SkylineInterior visible={true} modelUrl={interiorUrl} />
                     ) : (
-                        <GraffitiInterior visible={true} modelUrl={interiorUrl} />
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
                     )}
                 </View>
                 <TouchableOpacity style={styles.exitFullscreen} onPress={() => setIsFullscreen(false)}>
@@ -189,9 +186,9 @@ export default function PropertyDetailScreen() {
             ) : null}
 
             <TouchableOpacity style={styles.bookBtn} onPress={() => setBookingModalVisible(true)}>
-                <LinearGradient colors={['#667eea', '#764ba2']} style={styles.bookGradient}>
+                <View style={[styles.bookGradient, { backgroundColor: '#667eea' }]}>
                     <Text style={styles.bookText}>Book a Viewing</Text>
-                </LinearGradient>
+                </View>
             </TouchableOpacity>
         </>
     );
@@ -288,11 +285,7 @@ export default function PropertyDetailScreen() {
                     )
                 ) : (
                     <View style={{ flex: 1 }}>
-                        {property.name === 'Skyline towers' ? (
-                            <SkylineInterior visible={true} modelUrl={interiorUrl} />
-                        ) : (
-                            <GraffitiInterior visible={true} modelUrl={interiorUrl} />
-                        )}
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
                         <TouchableOpacity style={styles.backToExteriorBtn} onPress={() => setViewMode('exterior')}>
                             <Ionicons name="arrow-back" size={14} color="#fff" />
                             <Text style={styles.backToExteriorText}> Back to Exterior</Text>

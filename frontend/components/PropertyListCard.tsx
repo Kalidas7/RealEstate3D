@@ -61,7 +61,10 @@ export default function PropertyListCard({
                     </TouchableOpacity>
                 </View>
 
-                <Text style={styles.location} numberOfLines={1}>📍 {location}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                    <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.6)" />
+                    <Text style={[styles.location, { marginLeft: 4 }]} numberOfLines={1}>{location}</Text>
+                </View>
 
                 {description ? (
                     <Text style={styles.description} numberOfLines={2}>{description}</Text>
@@ -70,15 +73,15 @@ export default function PropertyListCard({
                 {/* Stats row */}
                 <View style={styles.statsRow}>
                     <View style={styles.stat}>
-                        <Text style={styles.statIcon}>🛏️</Text>
+                        <Ionicons name="bed-outline" size={14} color="rgba(255,255,255,0.7)" />
                         <Text style={styles.statText}>{bedrooms} Bed</Text>
                     </View>
                     <View style={styles.stat}>
-                        <Text style={styles.statIcon}>🚿</Text>
+                        <Ionicons name="water-outline" size={14} color="rgba(255,255,255,0.7)" />
                         <Text style={styles.statText}>{bathrooms} Bath</Text>
                     </View>
                     <View style={styles.stat}>
-                        <Text style={styles.statIcon}>📐</Text>
+                        <Ionicons name="resize-outline" size={14} color="rgba(255,255,255,0.7)" />
                         <Text style={styles.statText}>{area}</Text>
                     </View>
                 </View>

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
@@ -219,13 +220,13 @@ export default function HomeScreen() {
             <Text style={styles.title}>Properties</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton}>
-            <Text style={styles.profileIcon}>👤</Text>
+            <Ionicons name="person-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
         {/* Search */}
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search buildings or locations..."
@@ -237,7 +238,7 @@ export default function HomeScreen() {
 
         {/* Filters */}
         <TouchableOpacity style={styles.filterButton} onPress={() => setIsFilterVisible(!isFilterVisible)}>
-          <Text style={styles.filterIcon}>⚙️</Text>
+          <Ionicons name="options-outline" size={18} color="#fff" />
           <Text style={styles.filterText}>Filters</Text>
         </TouchableOpacity>
 

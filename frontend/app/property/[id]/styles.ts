@@ -65,8 +65,8 @@ export const styles = StyleSheet.create({
     // ─── Tab Bar (inside card) ──────────────────────────────
     tabBar: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 14,
         padding: 3,
         marginBottom: 16,
         borderWidth: 1,
@@ -74,14 +74,14 @@ export const styles = StyleSheet.create({
     },
     detailTab: {
         flex: 1,
-        paddingVertical: 9,
+        paddingVertical: 11,
         alignItems: 'center',
-        borderRadius: 10,
+        borderRadius: 11,
     },
     detailTabActive: {
-        backgroundColor: 'rgba(102, 126, 234, 0.3)',
+        backgroundColor: 'rgba(102, 126, 234, 0.25)',
         borderWidth: 1,
-        borderColor: 'rgba(102, 126, 234, 0.45)',
+        borderColor: 'rgba(102, 126, 234, 0.4)',
     },
     detailTabText: {
         fontSize: 13,
@@ -166,6 +166,7 @@ export const styles = StyleSheet.create({
     bookGradient: {
         paddingVertical: 14,
         alignItems: 'center',
+        backgroundColor: '#667eea',
     },
     bookText: {
         color: '#fff',

@@ -1,19 +1,28 @@
 export const CameraMovementScript = `
 // ========================================
-// Camera Movement — 2 Nodes, Fixed + 360
+// Camera Movement — Multi-Node, Fixed + 360
 // ========================================
 
 // ---------- BLENDER COORDS ----------
-
+// Adjusted to form a logical straight line, based on center nodes
 var blenderNodes = {
-  Node_A: { x: 0.21206,  y: -0.097888, z: 1.5867 },
-  Node_B: { x: -3.6825, y: -2.357,   z: 1.8756 }
+  Node_1: { x: 147.5, y: 153.5, z: 85.8 },  // View 1
+  Node_2: { x: 147.5, y: 309.0, z: 85.8 },  // View 2
+  Node_3: { x: 147.5, y: 531.0, z: 85.8 }   // View 3
 };
+
+var nodeLabels = {
+  Node_1: 'View 1',
+  Node_2: 'View 2',
+  Node_3: 'View 3'
+};
+
+var nodeOrder = ['Node_1', 'Node_2', 'Node_3'];
 
 // ---------- STATE ----------
 
 var worldNodes      = {};
-var currentNodeName = 'Node_A';
+var currentNodeName = 'Node_1';
 var isMovingCamera  = false;
 var nodeMeshes      = [];
 
@@ -34,7 +43,7 @@ function placeCameraAtNode(nodeName) {
   controls.target.copy(pos.clone().add(new THREE.Vector3(0, 0, -0.01)));
   controls.update();
   currentNodeName = nodeName;
-  updateNavButton();
+  updateNavUI();
 }
 
 // Smooth fly to a node
@@ -48,7 +57,7 @@ window.moveCameraToNode = function(nodeName) {
   var endPos      = worldNodes[nodeName].clone();
   var endTarget   = worldNodes[nodeName].clone().add(new THREE.Vector3(0, 0, -0.01));
 
-  var duration  = 1800;
+  var duration  = 1800; // time in ms
   var startTime = performance.now();
 
   function animate(time) {
@@ -67,7 +76,7 @@ window.moveCameraToNode = function(nodeName) {
       isMovingCamera  = false;
       currentNodeName = nodeName;
       applyFixedControls();
-      updateNavButton();
+      updateNavUI();
     }
   }
   requestAnimationFrame(animate);
@@ -81,40 +90,73 @@ function applyFixedControls() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.rotateSpeed   = 0.5;
-  controls.minDistance    = 0.01;
-  controls.maxDistance    = 0.01;
+  controls.minDistance   = 0.01;
+  controls.maxDistance   = 0.01;
 }
 
-// ---------- NAV BUTTON ----------
+// ---------- NAV UI ----------
 
-var navBtn = null;
+function updateNavUI() {
+  var navLabel = document.getElementById('__navLabel');
+  var prevBtn  = document.getElementById('__prevBtn');
+  var nextBtn  = document.getElementById('__nextBtn');
+  if (!navLabel || !prevBtn || !nextBtn) return;
 
-function updateNavButton() {
-  if (!navBtn) return;
-  var next  = currentNodeName === 'Node_A' ? 'Node_B' : 'Node_A';
-  var label = next === 'Node_A' ? 'Room A' : 'Room B';
-  navBtn.innerText = 'Go to ' + label;
-  navBtn.onclick = function() { window.moveCameraToNode(next); };
+  navLabel.innerText = nodeLabels[currentNodeName] || currentNodeName;
+
+  var idx = nodeOrder.indexOf(currentNodeName);
+  
+  if (idx <= 0) {
+    prevBtn.disabled = true;
+  } else {
+    prevBtn.disabled = false;
+    prevBtn.onclick = function() { window.moveCameraToNode(nodeOrder[idx - 1]); };
+  }
+
+  if (idx >= nodeOrder.length - 1 || idx === -1) {
+    nextBtn.disabled = true;
+  } else {
+    nextBtn.disabled = false;
+    nextBtn.onclick = function() { window.moveCameraToNode(nodeOrder[idx + 1]); };
+  }
 }
 
-function createNavButton() {
-  var old = document.getElementById('__navBtn');
+function createNavUI() {
+  var old = document.getElementById('__navContainer');
   if (old) old.remove();
 
-  navBtn = document.createElement('button');
-  navBtn.id = '__navBtn';
-  navBtn.className = 'nav-btn';
-  document.body.appendChild(navBtn);
-  updateNavButton();
+  var container = document.createElement('div');
+  container.id = '__navContainer';
+  container.className = 'nav-container';
+
+  var prevBtn = document.createElement('button');
+  prevBtn.id = '__prevBtn';
+  prevBtn.className = 'nav-btn-small';
+  prevBtn.innerText = '⬅ Prev';
+
+  var label = document.createElement('span');
+  label.id = '__navLabel';
+  label.className = 'nav-label';
+
+  var nextBtn = document.createElement('button');
+  nextBtn.id = '__nextBtn';
+  nextBtn.className = 'nav-btn-small';
+  nextBtn.innerText = 'Next ➡';
+
+  container.appendChild(prevBtn);
+  container.appendChild(label);
+  container.appendChild(nextBtn);
+
+  document.body.appendChild(container);
+  updateNavUI();
 }
 
 // ---------- ORANGE MARKER SPHERES ----------
 
 function createMarkerSpheres() {
   var geo = new THREE.SphereGeometry(0.12, 24, 24);
-  var names = Object.keys(worldNodes);
-  for (var i = 0; i < names.length; i++) {
-    var name = names[i];
+  for (var i = 0; i < nodeOrder.length; i++) {
+    var name = nodeOrder[i];
     var mat = new THREE.MeshBasicMaterial({
       color: 0xff6600,
       transparent: true,
@@ -145,21 +187,20 @@ function onSphereClicked(event) {
 // ---------- INIT ----------
 
 window.initializeCameraNodes = function(center, scale) {
-  var names = Object.keys(blenderNodes);
-  for (var i = 0; i < names.length; i++) {
-    var name = names[i];
+  for (var i = 0; i < nodeOrder.length; i++) {
+    var name = nodeOrder[i];
     var raw  = blenderNodes[name];
     worldNodes[name] = toThreeCoords(raw).sub(center).multiplyScalar(scale);
   }
 
   applyFixedControls();
   createMarkerSpheres();
-  createNavButton();
+  createNavUI();
 
   window.nodeRaycaster = new THREE.Raycaster();
   window.addEventListener('pointerdown', onSphereClicked, false);
 
-  // Start at Node A
-  placeCameraAtNode('Node_A');
+  // Start at the first node
+  placeCameraAtNode(nodeOrder[0]);
 };
 `;

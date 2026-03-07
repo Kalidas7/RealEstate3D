@@ -179,28 +179,12 @@ export default function BookingsScreen() {
                     style={[styles.tabButton, activeTab === 'upcoming' && styles.tabButtonActive]}
                     onPress={() => handleTabChange('upcoming')}
                 >
-                    {activeTab === 'upcoming' && (
-                        <LinearGradient
-                            colors={['#8A2BE2', '#4169E1']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16 }}
-                        />
-                    )}
                     <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>Upcoming</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tabButton, activeTab === 'completed' && styles.tabButtonActive]}
                     onPress={() => handleTabChange('completed')}
                 >
-                    {activeTab === 'completed' && (
-                        <LinearGradient
-                            colors={['#8A2BE2', '#4169E1']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16 }}
-                        />
-                    )}
                     <Text style={[styles.tabText, activeTab === 'completed' && styles.tabTextActive]}>Completed</Text>
                 </TouchableOpacity>
             </View>

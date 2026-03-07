@@ -70,17 +70,20 @@ export default function SponsoredCard({
             {/* Bottom info */}
             <View style={styles.content}>
                 <Text style={styles.name} numberOfLines={1}>{name}</Text>
-                <Text style={styles.location} numberOfLines={1}>📍 {location}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.85)" />
+                    <Text style={[styles.location, { marginBottom: 0, marginLeft: 4 }]} numberOfLines={1}>{location}</Text>
+                </View>
 
                 <View style={styles.footer}>
                     <Text style={styles.price}>{price}</Text>
                     <View style={styles.specs}>
                         <View style={styles.spec}>
-                            <Text style={styles.specIcon}>🛏️</Text>
+                            <Ionicons name="bed-outline" size={13} color="#fff" />
                             <Text style={styles.specText}>{bedrooms}</Text>
                         </View>
                         <View style={styles.spec}>
-                            <Text style={styles.specIcon}>📐</Text>
+                            <Ionicons name="resize-outline" size={13} color="#fff" />
                             <Text style={styles.specText}>{area}</Text>
                         </View>
                     </View>
