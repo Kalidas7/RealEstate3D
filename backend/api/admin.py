@@ -7,7 +7,7 @@ class PropertyAdmin(admin.ModelAdmin):
     search_fields = ('name', 'location')
     fieldsets = (
         ('Basic Info', {
-            'fields': ('name', 'location', 'price', 'description', 'image')
+            'fields': ('name', 'location', 'location_link', 'price', 'description', 'image')
         }),
         ('Property Details', {
             'fields': ('bedrooms', 'bathrooms', 'area')
@@ -27,7 +27,7 @@ class ListedPropertyAdmin(admin.ModelAdmin):
     search_fields = ('name', 'location')
     fieldsets = (
         ('Basic Info', {
-            'fields': ('name', 'location', 'price', 'description', 'image')
+            'fields': ('name', 'location', 'location_link', 'price', 'description', 'image')
         }),
         ('Property Details', {
             'fields': ('bedrooms', 'bathrooms', 'area')
