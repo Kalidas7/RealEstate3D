@@ -1,13 +1,19 @@
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Linking, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Linking, Alert, Platform, Animated, LayoutAnimation, UIManager } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Calendar from 'expo-calendar';
 import BookingModal from '../../components/BookingModal';
+import { useAsyncBackendSync } from '@/hooks/useAsyncBackendSync';
 import { styles } from './_styles';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const API_BASE = 'https://realestate3d.onrender.com';
 
@@ -29,38 +35,35 @@ interface Booking {
 export default function BookingsScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Reschedule state
     const [isRescheduleModalVisible, setRescheduleModalVisible] = useState(false);
     const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
 
+    // Use the generic hook — loads from cache first, then syncs from backend
+    const { data: bookings, isLoading, refresh, setData: setBookings } = useAsyncBackendSync<Booking[]>({
+        cacheKey: 'cached_bookings',
+        defaultValue: [],
+        fetchFromBackend: async () => {
+            const userData = await AsyncStorage.getItem('user');
+            if (!userData) return null;
+            const user = JSON.parse(userData);
+            const response = await fetch(`${API_BASE}/api/bookings/?email=${user.email}`);
+            if (response.ok) return await response.json();
+            return null;
+        },
+    });
+
+    // Re-sync when screen comes into focus
     useFocusEffect(
         useCallback(() => {
-            fetchBookings();
-        }, [])
+            refresh();
+        }, [refresh])
     );
 
-    const fetchBookings = async () => {
-        try {
-            const userData = await AsyncStorage.getItem('user');
-            if (!userData) {
-                router.replace('/(auth)/login' as any);
-                return;
-            }
-            const user = JSON.parse(userData);
-
-            const response = await fetch(`${API_BASE}/api/bookings/?email=${user.email}`);
-            if (response.ok) {
-                const data = await response.json();
-                setBookings(data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch bookings', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const handleTabChange = (tab: 'upcoming' | 'completed') => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setActiveTab(tab);
     };
 
     const handleRescheduleConfirm = async (date: string, time: string) => {
@@ -78,8 +81,14 @@ export default function BookingsScreen() {
             });
 
             if (response.ok) {
+                // Optimistic update — update local cache
+                const updatedBookings = bookings.map(b =>
+                    b.id === bookingToReschedule.id ? { ...b, date, time } : b
+                );
+                setBookings(updatedBookings);
+                await AsyncStorage.setItem('cached_bookings', JSON.stringify(updatedBookings));
                 Alert.alert("Success", "Booking rescheduled successfully.");
-                fetchBookings(); // refresh list
+                refresh(); // Sync fresh data from backend
             } else {
                 const errorData = await response.json();
                 Alert.alert(`Error: ${errorData.error}`);
@@ -99,20 +108,18 @@ export default function BookingsScreen() {
         const title = `${booking.property_details?.name || 'Property'} Visit`;
         const details = `Property viewing appointment for ${booking.property_details?.name || 'Property'}.`;
 
-        // Parse date and time correctly
         const currentYear = new Date().getFullYear();
         let eventDate = new Date(`${booking.date} ${currentYear} ${booking.time}`);
         if (isNaN(eventDate.getTime())) {
-            eventDate = new Date(); // fallback
+            eventDate = new Date();
         }
 
-        // If the date is more than 1 month in the past, it's probably for next year.
         if (eventDate.getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000) {
             eventDate = new Date(`${booking.date} ${currentYear + 1} ${booking.time}`);
         }
 
         const startDate = eventDate;
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
         if (Platform.OS === 'ios') {
             const { status } = await Calendar.requestCalendarPermissionsAsync();
@@ -145,7 +152,6 @@ export default function BookingsScreen() {
                 Alert.alert("Permission required", "Calendar access is needed to add events.");
             }
         } else {
-            // Android: Google Calendar URL template formatted to YYYYMMDDTHHMMSSZ
             const formatGoogleDate = (d: Date) => d.toISOString().replace(/-|:|\.\d{3}/g, '');
             const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(details)}`;
 
@@ -171,7 +177,7 @@ export default function BookingsScreen() {
             <View style={styles.tabContainer}>
                 <TouchableOpacity
                     style={[styles.tabButton, activeTab === 'upcoming' && styles.tabButtonActive]}
-                    onPress={() => setActiveTab('upcoming')}
+                    onPress={() => handleTabChange('upcoming')}
                 >
                     {activeTab === 'upcoming' && (
                         <LinearGradient
@@ -185,7 +191,7 @@ export default function BookingsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tabButton, activeTab === 'completed' && styles.tabButtonActive]}
-                    onPress={() => setActiveTab('completed')}
+                    onPress={() => handleTabChange('completed')}
                 >
                     {activeTab === 'completed' && (
                         <LinearGradient

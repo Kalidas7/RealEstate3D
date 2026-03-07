@@ -8,12 +8,13 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
+import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
-const LEFT_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2 - CARD_MARGIN;
+const LEFT_PADDING = 20 - CARD_MARGIN; // Align with list cards (marginHorizontal: 20)
 
 interface Property {
   id: number;
@@ -26,6 +27,8 @@ interface Property {
   area: string;
   description: string;
   three_d_file: string | null;
+  interior_file?: string | null;
+  interactive_mesh_names?: string;
 }
 
 interface ListedProperty {
@@ -39,6 +42,8 @@ interface ListedProperty {
   area: string;
   description: string;
   three_d_file: string | null;
+  interior_file?: string | null;
+  interactive_mesh_names?: string;
 }
 
 export default function HomeScreen() {
@@ -55,10 +60,13 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [serverError, setServerError] = useState(false);
 
+  const { syncLikedFromBackend } = useLikedViewed();
+
   useEffect(() => {
     loadUser();
     fetchProperties();
     fetchListedProperties();
+    syncLikedFromBackend();
   }, []);
 
   useEffect(() => {
@@ -280,6 +288,9 @@ export default function HomeScreen() {
               image={item.image}
               bedrooms={item.bedrooms}
               area={item.area}
+              three_d_file={item.three_d_file}
+              interior_file={item.interior_file}
+              interactive_mesh_names={item.interactive_mesh_names}
               onPress={() => handlePropertyPress({ ...item, source: 'sponsored' })}
             />
           )}
@@ -311,6 +322,9 @@ export default function HomeScreen() {
             bathrooms={item.bathrooms}
             area={item.area}
             description={item.description}
+            three_d_file={item.three_d_file}
+            interior_file={item.interior_file}
+            interactive_mesh_names={item.interactive_mesh_names}
             onPress={() => handlePropertyPress({ ...item, source: 'listed' } as any)}
           />
         ))

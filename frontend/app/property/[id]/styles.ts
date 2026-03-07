@@ -43,76 +43,125 @@ export const styles = StyleSheet.create({
         marginHorizontal: 10,
     },
     viewerSection: {
-        height: height * 0.6,
+        height: height * 0.55,
     },
     detailsSection: {
         flex: 1,
     },
+
+    // ─── Details Content ────────────────────────────────────
     detailsContent: {
         paddingHorizontal: 16,
-        paddingTop: 12,
+        paddingTop: 8,
         paddingBottom: 40,
     },
     detailsCard: {
-        borderRadius: 20,
-        padding: 20,
+        borderRadius: 22,
+        padding: 16,
         borderWidth: 0.5,
         borderColor: 'rgba(255, 255, 255, 0.1)',
     },
-    priceRow: {
+
+    // ─── Tab Bar (inside card) ──────────────────────────────
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderRadius: 12,
+        padding: 3,
         marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    detailTab: {
+        flex: 1,
+        paddingVertical: 9,
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    detailTabActive: {
+        backgroundColor: 'rgba(102, 126, 234, 0.3)',
+        borderWidth: 1,
+        borderColor: 'rgba(102, 126, 234, 0.45)',
+    },
+    detailTabText: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.45)',
+        fontWeight: '600',
+    },
+    detailTabTextActive: {
+        color: '#fff',
+    },
+
+    // ─── Overview ───────────────────────────────────────────
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: 14,
     },
     price: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: 'bold',
         color: '#4CAF50',
-        marginBottom: 4,
+        marginBottom: 3,
     },
     location: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.65)',
+    },
+    detailLikeBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        marginLeft: 12,
+        marginTop: 2,
     },
     statsRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingVertical: 14,
+        paddingVertical: 12,
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
-        marginBottom: 16,
+        marginBottom: 14,
     },
     stat: {
         alignItems: 'center',
     },
     statVal: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#fff',
     },
     statLabel: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.45)',
         marginTop: 2,
     },
     statDivider: {
         width: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         color: '#fff',
-        marginBottom: 8,
+        marginBottom: 10,
     },
     description: {
-        fontSize: 14,
-        lineHeight: 22,
-        color: 'rgba(255, 255, 255, 0.7)',
-        marginBottom: 16,
+        fontSize: 13,
+        lineHeight: 20,
+        color: 'rgba(255, 255, 255, 0.65)',
+        marginBottom: 14,
     },
     bookBtn: {
         borderRadius: 14,
         overflow: 'hidden',
-        marginTop: 4,
+        marginTop: 2,
     },
     bookGradient: {
         paddingVertical: 14,
@@ -120,9 +169,85 @@ export const styles = StyleSheet.create({
     },
     bookText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: 'bold',
     },
+
+    // ─── Amenities Grid ─────────────────────────────────────
+    amenitiesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    amenityCard: {
+        width: '47%',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 14,
+        paddingVertical: 16,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        gap: 8,
+    },
+    amenityLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.75)',
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+
+    // ─── Trends Cards ───────────────────────────────────────
+    trendCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    trendHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    trendTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    trendTitle: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.65)',
+        fontWeight: '600',
+    },
+    trendBadge: {
+        backgroundColor: 'rgba(74, 222, 128, 0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(74, 222, 128, 0.25)',
+    },
+    trendBadgeText: {
+        fontSize: 11,
+        color: '#4ade80',
+        fontWeight: 'bold',
+    },
+    trendValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 3,
+    },
+    trendDesc: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.45)',
+        lineHeight: 16,
+    },
+
+    // ─── Other ──────────────────────────────────────────────
     exitFullscreen: {
         position: 'absolute',
         top: 55,
@@ -150,8 +275,10 @@ export const styles = StyleSheet.create({
         position: 'absolute',
         top: 20,
         left: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 1,
@@ -159,7 +286,7 @@ export const styles = StyleSheet.create({
     },
     backToExteriorText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'bold',
     },
 });

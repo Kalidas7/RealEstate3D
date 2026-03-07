@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -18,6 +19,9 @@ interface SponsoredCardProps {
     image: string;
     bedrooms: number;
     area: string;
+    three_d_file?: string | null;
+    interior_file?: string | null;
+    interactive_mesh_names?: string;
     onPress: () => void;
 }
 
@@ -29,13 +33,16 @@ export default function SponsoredCard({
     image,
     bedrooms,
     area,
+    three_d_file,
+    interior_file,
+    interactive_mesh_names,
     onPress,
 }: SponsoredCardProps) {
     const { isLiked, toggleLike } = useLikedViewed();
     const liked = isLiked(id, 'sponsored');
 
     const handleLike = () => {
-        toggleLike({ id, name, location, price, image, bedrooms, bathrooms: 0, area, source: 'sponsored' }, 'sponsored');
+        toggleLike({ id, name, location, price, image, bedrooms, bathrooms: 0, area, three_d_file, interior_file, interactive_mesh_names, source: 'sponsored' }, 'sponsored');
     };
 
     return (
@@ -46,14 +53,18 @@ export default function SponsoredCard({
                 style={styles.gradient}
             />
 
-            {/* Sponsored badge */}
+            {/* Sponsored badge — LEFT side */}
             <View style={styles.exploreBadge}>
                 <Text style={styles.exploreText}>Sponsored ⭐</Text>
             </View>
 
-            {/* Like button */}
+            {/* Like button — RIGHT side, minimalist */}
             <TouchableOpacity style={styles.likeButton} onPress={handleLike} activeOpacity={0.7}>
-                <Text style={styles.likeIcon}>{liked ? '❤️' : '🤍'}</Text>
+                <Ionicons
+                    name={liked ? 'heart' : 'heart-outline'}
+                    size={18}
+                    color={liked ? '#ff4d6d' : '#fff'}
+                />
             </TouchableOpacity>
 
             {/* Bottom info */}
@@ -108,7 +119,7 @@ const styles = StyleSheet.create({
     exploreBadge: {
         position: 'absolute',
         top: 18,
-        right: 18,
+        left: 18,
         backgroundColor: 'rgba(255,255,255,0.18)',
         paddingHorizontal: 14,
         paddingVertical: 7,
@@ -124,18 +135,13 @@ const styles = StyleSheet.create({
     likeButton: {
         position: 'absolute',
         top: 18,
-        left: 18,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        right: 18,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.35)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    likeIcon: {
-        fontSize: 18,
     },
     content: {
         position: 'absolute',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -14,6 +15,9 @@ interface PropertyListCardProps {
     bathrooms: number;
     area: string;
     description?: string;
+    three_d_file?: string | null;
+    interior_file?: string | null;
+    interactive_mesh_names?: string;
     onPress: () => void;
 }
 
@@ -27,13 +31,16 @@ export default function PropertyListCard({
     bathrooms,
     area,
     description,
+    three_d_file,
+    interior_file,
+    interactive_mesh_names,
     onPress,
 }: PropertyListCardProps) {
     const { isLiked, toggleLike } = useLikedViewed();
     const liked = isLiked(id, 'listed');
 
     const handleLike = () => {
-        toggleLike({ id, name, location, price, image, bedrooms, bathrooms, area, description, source: 'listed' }, 'listed');
+        toggleLike({ id, name, location, price, image, bedrooms, bathrooms, area, description, three_d_file, interior_file, interactive_mesh_names, source: 'listed' }, 'listed');
     };
 
     return (
@@ -46,7 +53,11 @@ export default function PropertyListCard({
                 <View style={styles.topRow}>
                     <Text style={styles.name} numberOfLines={1}>{name}</Text>
                     <TouchableOpacity onPress={handleLike} activeOpacity={0.7} style={styles.likeButton}>
-                        <Text style={styles.likeIcon}>{liked ? '❤️' : '🤍'}</Text>
+                        <Ionicons
+                            name={liked ? 'heart' : 'heart-outline'}
+                            size={18}
+                            color={liked ? '#ff4d6d' : 'rgba(255,255,255,0.6)'}
+                        />
                     </TouchableOpacity>
                 </View>
 
@@ -119,16 +130,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     likeButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
-    },
-    likeIcon: {
-        fontSize: 16,
     },
     location: {
         fontSize: 12,

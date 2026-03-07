@@ -48,17 +48,12 @@ export default function ThreeDModal({
 
     if (!modelUrl) {
         return (
-            <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-                <View style={styles.container}>
-                    <View style={styles.placeholder}>
-                        <Text style={styles.placeholderIcon}>🏗️</Text>
-                        <Text style={styles.placeholderText}>No 3D model available</Text>
-                    </View>
-                    <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                        <Text style={styles.closeBtnText}>✕</Text>
-                    </TouchableOpacity>
+            <View style={styles.container}>
+                <View style={styles.placeholder}>
+                    <Text style={styles.placeholderIcon}>🏗️</Text>
+                    <Text style={styles.placeholderText}>No 3D model available</Text>
                 </View>
-            </Modal>
+            </View>
         );
     }
 
