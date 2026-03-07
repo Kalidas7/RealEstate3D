@@ -123,7 +123,9 @@ def update_profile(request):
         return Response({"error": "Email is required to identify the user."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         profile, created = UserProfile.objects.get_or_create(user=user)
 
         # Update username if provided
@@ -175,7 +177,9 @@ def user_likes(request):
              return Response({"error": "Email query param required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            if not user:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
             likes = UserLike.objects.filter(user=user)
             serializer = UserLikeSerializer(likes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -190,7 +194,9 @@ def user_likes(request):
              return Response({"error": "Email and liked_item_id required"}, status=status.HTTP_400_BAD_REQUEST)
              
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            if not user:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
             like, created = UserLike.objects.get_or_create(user=user, liked_item_id=liked_item_id)
             if created:
                 return Response({"message": "Like added"}, status=status.HTTP_201_CREATED)
@@ -207,7 +213,9 @@ def user_likes(request):
              return Response({"error": "Email and liked_item_id required"}, status=status.HTTP_400_BAD_REQUEST)
              
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            if not user:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
             deleted_count, _ = UserLike.objects.filter(user=user, liked_item_id=liked_item_id).delete()
             if deleted_count > 0:
                 return Response({"message": "Like removed"}, status=status.HTTP_200_OK)
@@ -229,7 +237,9 @@ def get_liked_properties(request):
         return Response({"error": "Email query param required"}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         likes = UserLike.objects.filter(user=user).order_by('-created_at')
         
         result = []

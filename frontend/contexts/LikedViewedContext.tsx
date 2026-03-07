@@ -167,8 +167,6 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
                     body: JSON.stringify({ email, liked_item_id: likedItemId }),
                 });
             }
-            // Try to sync from backend for fresh data (non-blocking)
-            syncLikedFromBackend().catch(() => { });
         } catch (error) {
             console.error('Error toggling like:', error);
             // Revert on error

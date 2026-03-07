@@ -81,7 +81,6 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     try {
                         clearAll();
-                        setUser(null);
                         await AsyncStorage.removeItem('user');
                         await AsyncStorage.removeItem('access_token');
                         await AsyncStorage.removeItem('refresh_token');
@@ -90,9 +89,7 @@ export default function ProfileScreen() {
                     } catch (error) {
                         await AsyncStorage.clear();
                     } finally {
-                        setTimeout(() => {
-                            router.replace({ pathname: '/', params: { logout: 'true' } });
-                        }, 100);
+                        router.replace('/?logout=true');
                     }
                 },
             },
