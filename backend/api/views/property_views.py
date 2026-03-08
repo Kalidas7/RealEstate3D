@@ -76,3 +76,32 @@ def migrate_coords(request):
         count += 1
         
     return JsonResponse({"status": "success", "migrated_count": count})
+@api_view(['GET'])
+def test_extract(request):
+    """Diagnose Google Maps blocking Render logic"""
+    import requests, re
+    url = request.query_params.get('url', 'https://maps.app.goo.gl/ZN38y9kdoD8ZvqED6?g_st=ic')
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        res = requests.get(url, allow_redirects=True, headers=headers, timeout=5)
+        html = res.text
+        
+        # Look for coordinates in HTML
+        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
+        html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
+        
+        # Look for !3d...!4d coord patterns
+        ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
+        
+        return JsonResponse({
+            "status_code": res.status_code,
+            "expanded_url": res.url,
+            "meta": meta_match.groups() if meta_match else None,
+            "html_array": html_match.groups() if html_match else None,
+            "ll_pattern": ll_match.groups() if ll_match else None,
+            "html_snippet": html[:2000] # Increased snippet size
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)})

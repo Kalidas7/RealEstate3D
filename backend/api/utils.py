@@ -45,7 +45,12 @@ def extract_coords_from_maps_link(url):
         if meta_match:
             return float(meta_match.group(1)), float(meta_match.group(2))
             
-        # Strategy 4: Check JS Array in HTML
+        # Strategy 4: Check !3d and !4d patterns in HTML
+        ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
+        if ll_match:
+            return float(ll_match.group(1)), float(ll_match.group(2))
+
+        # Strategy 5: Check JS Array in HTML
         html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
         if html_match:
             return float(html_match.group(1)), float(html_match.group(2))
