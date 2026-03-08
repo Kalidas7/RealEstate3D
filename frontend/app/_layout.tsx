@@ -50,7 +50,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       } catch {
         if (!cancelled) router.replace('/');
       } finally {
-        if (!cancelled) setIsReady(true);
+        if (!cancelled) {
+          setTimeout(() => setIsReady(true), 50);
+        }
       }
     };
 

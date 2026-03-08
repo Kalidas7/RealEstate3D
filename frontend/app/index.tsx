@@ -1,1 +1,4 @@
-export { default } from '../screens/Login';
+import LoginScreen from '../screens/Login';
+export default function Index() {
+  return <LoginScreen />;
+}

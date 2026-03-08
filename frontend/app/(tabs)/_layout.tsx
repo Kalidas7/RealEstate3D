@@ -6,7 +6,13 @@ import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 
-function AnimatedTabIcon({ name, color, focused }) {
+interface AnimatedTabIconProps {
+  name: any;
+  color: string;
+  focused: boolean;
+}
+
+function AnimatedTabIcon({ name, color, focused }: AnimatedTabIconProps) {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
