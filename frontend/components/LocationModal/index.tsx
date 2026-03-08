@@ -7,10 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface LocationModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelectLocation: (city: string) => void;
+    onSelectLocation: (city: string, lat: number | null, lon: number | null) => void;
 }
 
-const CITIES = ["Trivandrum", "Kochi", "Kollam"];
+const CITIES = [
+    { name: "Trivandrum", lat: 8.5241, lon: 76.9366 },
+    { name: "Kochi", lat: 9.9312, lon: 76.2673 },
+    { name: "Kollam", lat: 8.8932, lon: 76.5596 }
+];
 
 export default function LocationModal({ visible, onClose, onSelectLocation }: LocationModalProps) {
     const [loading, setLoading] = useState(false);
@@ -34,7 +38,7 @@ export default function LocationModal({ visible, onClose, onSelectLocation }: Lo
 
             if (geocode && geocode.length > 0) {
                 const city = geocode[0].city || geocode[0].subregion || geocode[0].region || "Unknown Location";
-                onSelectLocation(city);
+                onSelectLocation(city, location.coords.latitude, location.coords.longitude);
                 onClose();
             } else {
                 Alert.alert('Error', 'Could not determine your city from coordinates.');
@@ -47,8 +51,8 @@ export default function LocationModal({ visible, onClose, onSelectLocation }: Lo
         }
     };
 
-    const handleManualSelect = (city: string) => {
-        onSelectLocation(city);
+    const handleManualSelect = (cityObj: { name: string, lat: number, lon: number }) => {
+        onSelectLocation(cityObj.name, cityObj.lat, cityObj.lon);
         onClose();
     };
 
@@ -108,7 +112,7 @@ export default function LocationModal({ visible, onClose, onSelectLocation }: Lo
                                             style={[styles.cityItem, index < CITIES.length - 1 && styles.cityItemBorder]}
                                             onPress={() => handleManualSelect(city)}
                                         >
-                                            <Text style={styles.cityText}>{city}</Text>
+                                            <Text style={styles.cityText}>{city.name}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </View>

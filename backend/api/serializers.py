@@ -21,14 +21,25 @@ class UserLikeSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'created_at']
 
 class PropertySerializer(serializers.ModelSerializer):
+    distance_km = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Property
         fields = '__all__'
 
+    def get_distance_km(self, obj):
+        # Retrieve the dynamically attached distance_km from views.py (or None)
+        return getattr(obj, 'distance_km', None)
+
 class ListedPropertySerializer(serializers.ModelSerializer):
+    distance_km = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = ListedProperty
         fields = '__all__'
+
+    def get_distance_km(self, obj):
+        return getattr(obj, 'distance_km', None)
 
 class BookingSerializer(serializers.ModelSerializer):
     property_details = PropertySerializer(source='property', read_only=True)

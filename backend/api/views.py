@@ -6,8 +6,32 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+import math
 from .models import UserProfile, UserLike, Property, Booking, ListedProperty
 from .serializers import UserSerializer, UserLikeSerializer, PropertySerializer, BookingSerializer, ListedPropertySerializer
+
+def calculate_haversine_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance in kilometers between two points 
+    on the earth (specified in decimal degrees)
+    """
+    if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
+        return None
+        
+    try:
+        # convert decimal degrees to radians 
+        lon1, lat1, lon2, lat2 = map(math.radians, [float(lon1), float(lat1), float(lon2), float(lat2)])
+        
+        # haversine formula 
+        dlon = lon2 - lon1 
+        dlat = lat2 - lat1 
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        c = 2 * math.asin(math.sqrt(a)) 
+        
+        r = 6371 # Radius of earth in kilometers
+        return c * r
+    except (ValueError, TypeError):
+        return None
 
 @api_view(['POST'])
 def check_email(request):
@@ -273,9 +297,27 @@ def get_liked_properties(request):
 @api_view(['GET'])
 def get_properties(request):
     """
-    Returns a list of all properties.
+    Returns a list of all properties. Allows optional lat/lon filtering (max 20km).
     """
+    user_lat = request.query_params.get('lat')
+    user_lon = request.query_params.get('lon')
+    
     properties = Property.objects.all()
+    filtered_properties = []
+
+    if user_lat and user_lon:
+        for prop in properties:
+            if prop.latitude is not None and prop.longitude is not None:
+                dist = calculate_haversine_distance(user_lat, user_lon, prop.latitude, prop.longitude)
+                if dist is not None and dist <= 20.0:
+                    # Dynamically append distance for the serializer
+                    prop.distance_km = round(dist, 2)
+                    filtered_properties.append(prop)
+        
+        # Sort by ascending distance (closest first)
+        filtered_properties.sort(key=lambda x: getattr(x, 'distance_km', float('inf')))
+        properties = filtered_properties
+
     # Pass request context for absolute URLs
     serializer = PropertySerializer(properties, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -283,9 +325,25 @@ def get_properties(request):
 @api_view(['GET'])
 def get_listed_properties(request):
     """
-    Returns a list of all listed properties (for the 'All Properties' section).
+    Returns a list of all listed properties, filtering out those >20km away if coordinates provided.
     """
+    user_lat = request.query_params.get('lat')
+    user_lon = request.query_params.get('lon')
+    
     properties = ListedProperty.objects.all()
+    filtered_properties = []
+
+    if user_lat and user_lon:
+        for prop in properties:
+            if prop.latitude is not None and prop.longitude is not None:
+                dist = calculate_haversine_distance(user_lat, user_lon, prop.latitude, prop.longitude)
+                if dist is not None and dist <= 20.0:
+                    prop.distance_km = round(dist, 2)
+                    filtered_properties.append(prop)
+        
+        filtered_properties.sort(key=lambda x: getattr(x, 'distance_km', float('inf')))
+        properties = filtered_properties
+
     serializer = ListedPropertySerializer(properties, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 

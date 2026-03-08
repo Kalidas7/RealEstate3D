@@ -65,6 +65,7 @@ export default function HomeScreen() {
 
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number, lon: number } | null>(null);
 
   const { syncLikedFromBackend } = useLikedViewed();
 
@@ -76,10 +77,10 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    fetchProperties();
-    fetchListedProperties();
+    fetchProperties(userCoords);
+    fetchListedProperties(userCoords);
     syncLikedFromBackend();
-  }, []);
+  }, [userCoords]);
 
   useEffect(() => {
     let result = [...properties];
@@ -142,11 +143,18 @@ export default function HomeScreen() {
     }
   };
 
+  // Removed Frontend Distance Calculations. Django Backend handles spatial arithmetic over `/properties/?lat=&lon=`
+
   const loadLocation = async () => {
     try {
       const savedLocation = await AsyncStorage.getItem('user_location');
+      const savedCoords = await AsyncStorage.getItem('user_coords');
+
       if (savedLocation) {
         setSelectedCity(savedLocation);
+        if (savedCoords) {
+          setUserCoords(JSON.parse(savedCoords));
+        }
         setShowLocationModal(false);
       } else {
         setShowLocationModal(true);
@@ -157,24 +165,43 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLocationSelect = async (city: string) => {
+  const handleLocationSelect = async (city: string, lat: number | null, lon: number | null) => {
     setSelectedCity(city);
     try {
       await AsyncStorage.setItem('user_location', city);
+      if (lat !== null && lon !== null) {
+        const coordsObj = { lat, lon };
+        setUserCoords(coordsObj);
+        await AsyncStorage.setItem('user_coords', JSON.stringify(coordsObj));
+      } else {
+        await AsyncStorage.removeItem('user_coords');
+        setUserCoords(null);
+      }
     } catch (e) {
       console.error("Error saving location:", e);
     }
     setShowLocationModal(false);
   };
 
-  const fetchProperties = async () => {
+  const fetchProperties = async (coords: { lat: number, lon: number } | null = null) => {
     setLoading(true);
     setServerError(false);
     try {
-      const response = await fetch(`${API_URL}/properties/`);
+      let url = `${API_URL}/properties/`;
+      if (coords) url += `?lat=${coords.lat}&lon=${coords.lon}`;
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Server returned an error');
       const data = await response.json();
       if (Array.isArray(data)) {
+        if (coords) {
+          console.log(`\n\x1b[36m--- API DISTANCE REPORT (Sponsored) ---\x1b[0m`);
+          data.forEach((p: any) => {
+            if (p.distance_km !== undefined && p.distance_km !== null) {
+              console.log(`🏠 \x1b[33m${p.name}\x1b[0m | Distance: \x1b[32m${p.distance_km} km\x1b[0m`);
+            }
+          });
+        }
         setProperties(data);
       }
     } catch (error) {
@@ -187,12 +214,23 @@ export default function HomeScreen() {
     }
   };
 
-  const fetchListedProperties = async () => {
+  const fetchListedProperties = async (coords: { lat: number, lon: number } | null = null) => {
     try {
-      const response = await fetch(`${API_URL}/listed-properties/`);
+      let url = `${API_URL}/listed-properties/`;
+      if (coords) url += `?lat=${coords.lat}&lon=${coords.lon}`;
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Server error');
       const data = await response.json();
       if (Array.isArray(data)) {
+        if (coords) {
+          console.log(`\n\x1b[36m--- API DISTANCE REPORT (Listed) ---\x1b[0m`);
+          data.forEach((p: any) => {
+            if (p.distance_km !== undefined && p.distance_km !== null) {
+              console.log(`🏠 \x1b[33m${p.name}\x1b[0m | Distance: \x1b[32m${p.distance_km} km\x1b[0m`);
+            }
+          });
+        }
         setListedProperties(data);
       }
     } catch (error) {
@@ -202,8 +240,8 @@ export default function HomeScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProperties();
-    fetchListedProperties();
+    fetchProperties(userCoords);
+    fetchListedProperties(userCoords);
   };
 
   const handlePropertyPress = (property: any) => {
