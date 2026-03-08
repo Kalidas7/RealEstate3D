@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { styles } from './styles';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
@@ -13,6 +14,7 @@ const API_URL = 'https://realestate3d.onrender.com/api';
 export default function LoginScreen() {
     const router = useRouter();
     const { refreshLiked } = useLikedViewed();
+    const { setLoggedIn } = useAuth();
 
     const [step, setStep] = useState<'email' | 'login' | 'signup'>('email');
     const [email, setEmail] = useState('');
@@ -92,6 +94,7 @@ export default function LoginScreen() {
                     await AsyncStorage.setItem('refresh_token', data.refresh);
                     console.log('User data and tokens saved, navigating to tabs');
                     await refreshLiked();
+                    setLoggedIn(true);
                     router.replace('/(tabs)');
                 } else {
                     Alert.alert('Login Failed', data.error);
@@ -140,6 +143,7 @@ export default function LoginScreen() {
             if (response.ok) {
                 await AsyncStorage.setItem('user', JSON.stringify(data.user));
                 await refreshLiked();
+                setLoggedIn(true);
                 router.replace('/(tabs)');
             } else {
                 Alert.alert('Signup Failed', data.error);

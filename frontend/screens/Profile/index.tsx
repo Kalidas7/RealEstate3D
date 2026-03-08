@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
     const [user, setUser] = useState<User | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('profile');
     const { likedProperties, refreshLiked, viewedProperties, clearAll } = useLikedViewed();
+    const { logout } = useAuth();
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
     // Edit Profile State
@@ -74,23 +76,15 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
-                        // Clear context state first
+                        // Clear context state
                         clearAll();
-                        // Fully await storage clear BEFORE navigating.
-                        // If we navigate before this completes, the login screen's
-                        // old checkUser (removed) could have bounced back to tabs.
-                        await AsyncStorage.multiRemove([
-                            'user',
-                            'access_token',
-                            'refresh_token',
-                            'liked_ids',
-                            'liked_properties',
-                        ]);
-                        // Now safe to navigate — storage is cleared
+                        // logout() in AuthContext: awaits AsyncStorage.multiRemove FIRST,
+                        // then sets isLoggedIn=false in memory (synchronous React state).
+                        // AuthGuard's segment effect sees the flag change instantly — no race.
+                        await logout();
                         router.replace('/');
                     } catch (error) {
                         console.error('Logout error:', error);
-                        // Even on error, navigate to login
                         router.replace('/');
                     }
                 },
