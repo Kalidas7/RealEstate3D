@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet, View, Text, TextInput,
   TouchableOpacity, FlatList, Dimensions, RefreshControl,
@@ -12,52 +12,22 @@ import PropertyListCard from '@/components/PropertyListCard';
 import LocationModal from '@/components/LocationModal';
 import HomeHeader from '@/components/HomeHeader';
 import HomeStateIndicator from '@/components/HomeStateIndicator';
-import { useLikedViewed } from '@/contexts/LikedViewedContext';
+import { useLikedViewed, PropertyData } from '@/contexts/LikedViewedContext';
 import { useFocusEffect } from '@react-navigation/native';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
-const LEFT_PADDING = 20 - CARD_MARGIN; // Align with list cards (marginHorizontal: 20)
-
-interface Property {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  image: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: string;
-  description: string;
-  three_d_file: string | null;
-  interior_file?: string | null;
-  interactive_mesh_names?: string;
-}
-
-interface ListedProperty {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  image: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: string;
-  description: string;
-  three_d_file: string | null;
-  interior_file?: string | null;
-  interactive_mesh_names?: string;
-}
+const LEFT_PADDING = 20 - CARD_MARGIN;
 
 export default function HomeScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [listedProperties, setListedProperties] = useState<ListedProperty[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [filteredListedProperties, setFilteredListedProperties] = useState<ListedProperty[]>([]);
+  const [properties, setProperties] = useState<PropertyData[]>([]);
+  const [listedProperties, setListedProperties] = useState<PropertyData[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<PropertyData[]>([]);
+  const [filteredListedProperties, setFilteredListedProperties] = useState<PropertyData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,17 +41,20 @@ export default function HomeScreen() {
 
   const { syncLikedFromBackend } = useLikedViewed();
 
+  // Track previous coords to avoid redundant fetches
+  const prevCoordsRef = useRef<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       loadUser();
       loadLocation();
+      // Sync likes once per tab focus — NOT tied to coord changes
+      syncLikedFromBackend();
     }, [])
   );
 
   useEffect(() => {
-    fetchProperties(userCoords);
-    fetchListedProperties(userCoords);
-    syncLikedFromBackend();
+    fetchAllProperties(userCoords);
   }, [userCoords]);
 
   useEffect(() => {
@@ -140,8 +113,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Removed Frontend Distance Calculations. Django Backend handles spatial arithmetic over `/properties/?lat=&lon=`
-
   const loadLocation = async () => {
     try {
       const savedLocation = await AsyncStorage.getItem('user_location');
@@ -150,7 +121,13 @@ export default function HomeScreen() {
       if (savedLocation) {
         setSelectedCity(savedLocation);
         if (savedCoords) {
-          setUserCoords(JSON.parse(savedCoords));
+          const parsed = JSON.parse(savedCoords);
+          const coordKey = `${parsed.lat},${parsed.lon}`;
+          // Only update state if coords actually changed — prevents useless re-fetches
+          if (prevCoordsRef.current !== coordKey) {
+            prevCoordsRef.current = coordKey;
+            setUserCoords(parsed);
+          }
         }
         setShowLocationModal(false);
       } else {
@@ -168,10 +145,12 @@ export default function HomeScreen() {
       await AsyncStorage.setItem('user_location', city);
       if (lat !== null && lon !== null) {
         const coordsObj = { lat, lon };
+        prevCoordsRef.current = `${lat},${lon}`;
         setUserCoords(coordsObj);
         await AsyncStorage.setItem('user_coords', JSON.stringify(coordsObj));
       } else {
         await AsyncStorage.removeItem('user_coords');
+        prevCoordsRef.current = null;
         setUserCoords(null);
       }
     } catch (e) {
@@ -180,65 +159,55 @@ export default function HomeScreen() {
     setShowLocationModal(false);
   };
 
-  const fetchProperties = async (coords: { lat: number, lon: number } | null = null) => {
+  /** Single combined fetch — replaces two separate API calls */
+  const fetchAllProperties = async (coords: { lat: number, lon: number } | null = null) => {
     setLoading(true);
     setServerError(false);
     try {
-      let url = `${API_URL}/properties/`;
+      let url = `${API_URL}/all-properties/`;
       if (coords) url += `?lat=${coords.lat}&lon=${coords.lon}`;
 
       const response = await fetch(url);
       if (!response.ok) throw new Error('Server returned an error');
       const data = await response.json();
-      if (Array.isArray(data)) {
+
+      if (data.sponsored && Array.isArray(data.sponsored)) {
         if (coords) {
           console.log(`\n\x1b[36m--- API DISTANCE REPORT (Sponsored) ---\x1b[0m`);
-          data.forEach((p: any) => {
+          data.sponsored.forEach((p: any) => {
             if (p.distance_km !== undefined && p.distance_km !== null) {
               console.log(`🏠 \x1b[33m${p.name}\x1b[0m | Distance: \x1b[32m${p.distance_km} km\x1b[0m`);
             }
           });
         }
-        setProperties(data);
+        setProperties(data.sponsored);
+      }
+
+      if (data.listed && Array.isArray(data.listed)) {
+        if (coords) {
+          console.log(`\n\x1b[36m--- API DISTANCE REPORT (Listed) ---\x1b[0m`);
+          data.listed.forEach((p: any) => {
+            if (p.distance_km !== undefined && p.distance_km !== null) {
+              console.log(`🏠 \x1b[33m${p.name}\x1b[0m | Distance: \x1b[32m${p.distance_km} km\x1b[0m`);
+            }
+          });
+        }
+        setListedProperties(data.listed);
       }
     } catch (error) {
       console.error('Fetch error:', error);
       setServerError(true);
       setProperties([]);
+      setListedProperties([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const fetchListedProperties = async (coords: { lat: number, lon: number } | null = null) => {
-    try {
-      let url = `${API_URL}/listed-properties/`;
-      if (coords) url += `?lat=${coords.lat}&lon=${coords.lon}`;
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Server error');
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        if (coords) {
-          console.log(`\n\x1b[36m--- API DISTANCE REPORT (Listed) ---\x1b[0m`);
-          data.forEach((p: any) => {
-            if (p.distance_km !== undefined && p.distance_km !== null) {
-              console.log(`🏠 \x1b[33m${p.name}\x1b[0m | Distance: \x1b[32m${p.distance_km} km\x1b[0m`);
-            }
-          });
-        }
-        setListedProperties(data);
-      }
-    } catch (error) {
-      console.error('Listed properties fetch error:', error);
-    }
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProperties(userCoords);
-    fetchListedProperties(userCoords);
+    fetchAllProperties(userCoords);
   };
 
   const handlePropertyPress = (property: any) => {
@@ -342,7 +311,7 @@ export default function HomeScreen() {
             bedrooms={item.bedrooms}
             bathrooms={item.bathrooms}
             area={item.area}
-            description={item.description}
+            description={item.description || ''}
             three_d_file={item.three_d_file}
             interior_file={item.interior_file}
             interactive_mesh_names={item.interactive_mesh_names}
@@ -364,6 +333,7 @@ export default function HomeScreen() {
           try {
             await AsyncStorage.removeItem('user_coords');
             await AsyncStorage.removeItem('user_location');
+            prevCoordsRef.current = null;
             setUserCoords(null);
             setSelectedCity(null);
           } catch (e) {
@@ -399,3 +369,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

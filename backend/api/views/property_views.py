@@ -6,84 +6,74 @@ from api.models import Property, ListedProperty
 from api.serializers import PropertySerializer, ListedPropertySerializer
 from api.utils import calculate_haversine_distance, extract_coords_from_maps_link
 
+
+def _filter_by_distance(queryset, user_lat, user_lon, max_km=20.0):
+    """Shared helper: filter a queryset by haversine distance and attach distance_km."""
+    if not user_lat or not user_lon:
+        return list(queryset)
+
+    results = []
+    for prop in queryset:
+        if prop.latitude is not None and prop.longitude is not None:
+            dist = calculate_haversine_distance(user_lat, user_lon, prop.latitude, prop.longitude)
+            if dist is not None and dist <= max_km:
+                prop.distance_km = round(dist, 2)
+                results.append(prop)
+    results.sort(key=lambda x: getattr(x, 'distance_km', float('inf')))
+    return results
+
+
 @api_view(['GET'])
-def get_properties(request):
+def get_all_properties(request):
     """
-    Returns a list of all properties. Allows optional lat/lon filtering (max 20km).
+    Combined endpoint: returns both sponsored and listed properties in one response.
+    This halves the number of network round-trips the frontend needs to make.
+    Accepts optional ?lat=X&lon=Y for distance filtering (max 20km).
     """
     user_lat = request.query_params.get('lat')
     user_lon = request.query_params.get('lon')
-    
-    properties = Property.objects.all()
-    filtered_properties = []
 
-    if user_lat and user_lon:
-        for prop in properties:
-            if prop.latitude is not None and prop.longitude is not None:
-                dist = calculate_haversine_distance(user_lat, user_lon, prop.latitude, prop.longitude)
-                if dist is not None and dist <= 20.0:
-                    # Dynamically append distance for the serializer
-                    prop.distance_km = round(dist, 2)
-                    filtered_properties.append(prop)
-        
-        # Sort by ascending distance (closest first)
-        filtered_properties.sort(key=lambda x: getattr(x, 'distance_km', float('inf')))
-        properties = filtered_properties
+    sponsored = _filter_by_distance(Property.objects.all(), user_lat, user_lon)
+    listed = _filter_by_distance(ListedProperty.objects.all(), user_lat, user_lon)
 
-    # Pass request context for absolute URLs
-    serializer = PropertySerializer(properties, many=True, context={'request': request})
+    return Response({
+        'sponsored': PropertySerializer(sponsored, many=True, context={'request': request}).data,
+        'listed': ListedPropertySerializer(listed, many=True, context={'request': request}).data,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_properties(request):
+    """Legacy endpoint kept for backward compatibility."""
+    user_lat = request.query_params.get('lat')
+    user_lon = request.query_params.get('lon')
+    props = _filter_by_distance(Property.objects.all(), user_lat, user_lon)
+    serializer = PropertySerializer(props, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 def get_listed_properties(request):
-    """
-    Returns a list of all listed properties, filtering out those >20km away if coordinates provided.
-    """
+    """Legacy endpoint kept for backward compatibility."""
     user_lat = request.query_params.get('lat')
     user_lon = request.query_params.get('lon')
-    
-    properties = ListedProperty.objects.all()
-    filtered_properties = []
-
-    if user_lat and user_lon:
-        for prop in properties:
-            if prop.latitude is not None and prop.longitude is not None:
-                dist = calculate_haversine_distance(user_lat, user_lon, prop.latitude, prop.longitude)
-                if dist is not None and dist <= 20.0:
-                    prop.distance_km = round(dist, 2)
-                    filtered_properties.append(prop)
-        
-        filtered_properties.sort(key=lambda x: getattr(x, 'distance_km', float('inf')))
-        properties = filtered_properties
-
-    serializer = ListedPropertySerializer(properties, many=True, context={'request': request})
+    props = _filter_by_distance(ListedProperty.objects.all(), user_lat, user_lon)
+    serializer = ListedPropertySerializer(props, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 def migrate_coords(request):
-    """Temporary endpoint to force missing coordinates to update from location_link URLs"""
+    """Re-extract coordinates for all properties using the Geocoding API."""
     try:
         count = 0
-        from api.utils import extract_coords_from_maps_link
-        
-        # 1. Update regular properties
-        for p in Property.objects.all():
-            lat, lon = extract_coords_from_maps_link(p.location_link, bias_text=p.location)
-            if lat and lon:
-                p.latitude = lat
-                p.longitude = lon
-                p.save()
-                count += 1
-                
-        # 2. Update listed properties
-        for p in ListedProperty.objects.all():
-            lat, lon = extract_coords_from_maps_link(p.location_link, bias_text=p.location)
-            if lat and lon:
-                p.latitude = lat
-                p.longitude = lon
-                p.save()
-                count += 1
-            
+        for Model in [Property, ListedProperty]:
+            for p in Model.objects.all():
+                lat, lon = extract_coords_from_maps_link(p.location_link, bias_text=p.location)
+                if lat and lon:
+                    # Use update() to skip the save() hook and avoid redundant geocoding
+                    Model.objects.filter(pk=p.pk).update(latitude=lat, longitude=lon)
+                    count += 1
         return JsonResponse({"status": "success", "processed_count": count})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
