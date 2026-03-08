@@ -66,7 +66,7 @@ class Property(models.Model):
                     update_coords = True
             
             if update_coords:
-                lat, lon = extract_coords_from_maps_link(self.location_link)
+                lat, lon = extract_coords_from_maps_link(self.location_link, bias_text=self.location)
                 if lat is not None and lon is not None:
                     self.latitude = lat
                     self.longitude = lon
@@ -111,7 +111,7 @@ class ListedProperty(models.Model):
                     update_coords = True
             
             if update_coords:
-                lat, lon = extract_coords_from_maps_link(self.location_link)
+                lat, lon = extract_coords_from_maps_link(self.location_link, bias_text=self.location)
                 if lat is not None and lon is not None:
                     self.latitude = lat
                     self.longitude = lon

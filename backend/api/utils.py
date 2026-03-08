@@ -2,7 +2,7 @@ import math
 import re
 import requests
 
-def extract_coords_from_maps_link(url):
+def extract_coords_from_maps_link(url, bias_text=None):
     """
     Extract coordinates from a Google Maps link using the Geocoding API.
     Removes legacy scraping logic and uses the official API for 100% reliability.
@@ -47,7 +47,9 @@ def extract_coords_from_maps_link(url):
                 query = unquote(path_match.group(1)).replace('+', ' ')
 
         if query and settings.GOOGLE_MAPS_API_KEY:
-            api_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={query}&key={settings.GOOGLE_MAPS_API_KEY}"
+            # Add bias text if provided (e.g., "Trivandrum") to help the geocoder
+            full_query = f"{query}, {bias_text}" if bias_text else query
+            api_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={full_query}&key={settings.GOOGLE_MAPS_API_KEY}"
             api_res = requests.get(api_url, timeout=5).json()
             if api_res.get('status') == 'OK':
                 loc = api_res['results'][0]['geometry']['location']

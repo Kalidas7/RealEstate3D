@@ -68,7 +68,7 @@ def migrate_coords(request):
         
         # 1. Update regular properties
         for p in Property.objects.all():
-            lat, lon = extract_coords_from_maps_link(p.location_link)
+            lat, lon = extract_coords_from_maps_link(p.location_link, bias_text=p.location)
             if lat and lon:
                 p.latitude = lat
                 p.longitude = lon
@@ -77,7 +77,7 @@ def migrate_coords(request):
                 
         # 2. Update listed properties
         for p in ListedProperty.objects.all():
-            lat, lon = extract_coords_from_maps_link(p.location_link)
+            lat, lon = extract_coords_from_maps_link(p.location_link, bias_text=p.location)
             if lat and lon:
                 p.latitude = lat
                 p.longitude = lon
