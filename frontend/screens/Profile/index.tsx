@@ -76,13 +76,11 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
-                        // Clear context state
                         clearAll();
-                        // logout() in AuthContext: awaits AsyncStorage.multiRemove FIRST,
-                        // then sets isLoggedIn=false in memory (synchronous React state).
-                        // AuthGuard's segment effect sees the flag change instantly — no race.
+                        // logout() clears AsyncStorage then sets isLoggedIn=false.
+                        // The AuthGuard segment guard watches isLoggedIn and will
+                        // automatically call router.replace('/') — no double navigation.
                         await logout();
-                        router.replace('/');
                     } catch (error) {
                         console.error('Logout error:', error);
                         router.replace('/');
