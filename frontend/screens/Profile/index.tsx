@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
-import { useFocusEffect } from '@react-navigation/native';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
@@ -44,12 +43,6 @@ export default function ProfileScreen() {
     useEffect(() => {
         loadUser();
     }, []);
-
-    useFocusEffect(
-        useCallback(() => {
-            refreshLiked();
-        }, [refreshLiked])
-    );
 
     const handleTabChange = (tab: TabType) => {
         Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }).start(() => {

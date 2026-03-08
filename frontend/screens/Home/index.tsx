@@ -10,7 +10,6 @@ import LocationModal from '@/components/LocationModal';
 import HomeHeader from '@/components/HomeHeader';
 import HomeStateIndicator from '@/components/HomeStateIndicator';
 import { useLikedViewed, PropertyData } from '@/contexts/LikedViewedContext';
-import { useFocusEffect } from '@react-navigation/native';
 import { styles } from './styles';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
@@ -37,8 +36,6 @@ export default function HomeScreen() {
     const [selectedCity, setSelectedCity] = useState<string | null>(null);
     const [userCoords, setUserCoords] = useState<{ lat: number, lon: number } | null>(null);
 
-    const { syncLikedFromBackend } = useLikedViewed();
-
     // Track previous coords to avoid redundant fetches
     const prevCoordsRef = useRef<string | null>(null);
 
@@ -46,14 +43,8 @@ export default function HomeScreen() {
     // This prevents the modal from re-appearing every time the home tab is visited
     useEffect(() => {
         loadLocation();
+        loadUser();
     }, []);
-
-    useFocusEffect(
-        useCallback(() => {
-            loadUser();
-            syncLikedFromBackend();
-        }, [])
-    );
 
     useEffect(() => {
         fetchAllProperties(userCoords);
