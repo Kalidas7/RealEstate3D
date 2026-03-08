@@ -75,9 +75,14 @@ export function useAsyncBackendSync<T>({
         }
     };
 
+    const fetchRef = useRef(fetchFromBackend);
+    useEffect(() => {
+        fetchRef.current = fetchFromBackend;
+    }, [fetchFromBackend]);
+
     const syncFromBackend = useCallback(async () => {
         try {
-            const freshData = await fetchFromBackend();
+            const freshData = await fetchRef.current();
             if (freshData !== null && isMounted.current) {
                 setData(freshData);
                 await saveToCache(freshData);
@@ -85,7 +90,7 @@ export function useAsyncBackendSync<T>({
         } catch (e) {
             console.error(`[AsyncSync] Error syncing "${cacheKey}" from backend:`, e);
         }
-    }, [fetchFromBackend, cacheKey]);
+    }, [cacheKey]);
 
     const refresh = syncFromBackend;
 

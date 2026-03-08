@@ -88,11 +88,6 @@ export default function HomeScreen() {
     let result = [...properties];
     let listedResult = [...listedProperties];
 
-    if (selectedCity) {
-      result = result.filter(p => p.location.toLowerCase().includes(selectedCity.toLowerCase()));
-      listedResult = listedResult.filter(p => p.location.toLowerCase().includes(selectedCity.toLowerCase()));
-    }
-
     if (searchQuery.trim() !== '') {
       result = result.filter(
         (p) =>
@@ -368,7 +363,9 @@ export default function HomeScreen() {
         onSkipOption={async () => {
           try {
             await AsyncStorage.removeItem('user_coords');
+            await AsyncStorage.removeItem('user_location');
             setUserCoords(null);
+            setSelectedCity(null);
           } catch (e) {
             console.error(e);
           }

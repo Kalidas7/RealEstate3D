@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from django.http import JsonResponse
 from api.models import Property, ListedProperty
 from api.serializers import PropertySerializer, ListedPropertySerializer
 from api.utils import calculate_haversine_distance
@@ -57,3 +58,17 @@ def get_listed_properties(request):
 
     serializer = ListedPropertySerializer(properties, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def migrate_coords(request):
+    """Temporary endpoint to force missing coordinates to update from location_link URLs"""
+    count = 0
+    for p in Property.objects.all():
+        p.save()
+        count += 1
+        
+    for p in ListedProperty.objects.all():
+        p.save()
+        count += 1
+        
+    return JsonResponse({"status": "success", "migrated_count": count})
