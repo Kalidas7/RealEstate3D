@@ -62,20 +62,29 @@ def get_listed_properties(request):
 @api_view(['GET'])
 def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
+    logs = []
     count = 0
     for p in Property.objects.all():
         p.latitude = None
         p.longitude = None
+        lat, lon = extract_coords_from_maps_link(p.location_link)
+        p.latitude = lat
+        p.longitude = lon
         p.save()
+        logs.append(f"Property {p.id} ({p.name}): {lat}, {lon}")
         count += 1
         
     for p in ListedProperty.objects.all():
         p.latitude = None
         p.longitude = None
+        lat, lon = extract_coords_from_maps_link(p.location_link)
+        p.latitude = lat
+        p.longitude = lon
         p.save()
+        logs.append(f"ListedProperty {p.id} ({p.name}): {lat}, {lon}")
         count += 1
         
-    return JsonResponse({"status": "success", "migrated_count": count})
+    return JsonResponse({"status": "success", "migrated_count": count, "logs": logs})
 @api_view(['GET'])
 def test_extract(request):
     """Diagnose Google Maps blocking Render logic"""
