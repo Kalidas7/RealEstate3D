@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
     isLoggedIn: boolean;
+    isLoading: boolean;       // true while we're checking AsyncStorage on boot
     setLoggedIn: (value: boolean) => void;
     logout: () => Promise<void>;
 }
@@ -17,15 +18,28 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // starts true until storage is read
+
+    // On mount: read AsyncStorage ONCE to seed in-memory state
+    useEffect(() => {
+        AsyncStorage.getItem('user')
+            .then(raw => {
+                console.log('[AuthContext] user in storage on boot:', !!raw);
+                setIsLoggedIn(!!raw);
+            })
+            .catch(() => setIsLoggedIn(false))
+            .finally(() => setIsLoading(false));
+    }, []);
 
     const setLoggedIn = useCallback((value: boolean) => {
         setIsLoggedIn(value);
     }, []);
 
     /**
-     * Clears ALL auth from storage first, then flips the in-memory flag.
-     * Because the flag change is synchronous, the segment guard sees
-     * isLoggedIn=false immediately — no AsyncStorage race condition.
+     * logout():
+     *  1. Clears AsyncStorage first (so storage is fully wiped)
+     *  2. Sets isLoggedIn=false synchronously in memory
+     * Routes that consume isLoggedIn will react immediately.
      */
     const logout = useCallback(async () => {
         await AsyncStorage.multiRemove([
@@ -36,10 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'liked_properties',
         ]);
         setIsLoggedIn(false);
+        console.log('[AuthContext] logout complete, isLoggedIn=false');
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, setLoggedIn, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, isLoading, setLoggedIn, logout }}>
             {children}
         </AuthContext.Provider>
     );

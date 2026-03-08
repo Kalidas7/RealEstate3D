@@ -1,8 +1,9 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -26,17 +27,37 @@ function AnimatedTabIcon({ name, color, focused }: AnimatedTabIconProps) {
 
   return (
     <View style={iconStyles.container}>
-      <Animated.View
-        style={{
-          transform: [{ scale: scaleAnim }],
-        }}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <Ionicons name={name} size={22} color={color} />
       </Animated.View>
     </View>
   );
 }
 
+/**
+ * (tabs)/_layout.tsx — guards the entire tabs group.
+ *
+ * isLoading → show nothing (AuthContext still reading storage)
+ * !isLoggedIn → Redirect to '/' → index shows login form (not a loop because
+ *               index doesn't redirect back to tabs when !isLoggedIn)
+ * isLoggedIn  → render Tabs normally
+ *
+ * This is the correct Expo Router Redirect pattern:
+ * index → tabs (when logged in)   ←→ safe
+ * tabs → index (when logged out)  ←→ safe (no loop, index shows login form)
+ */
 export default function TabLayout() {
+  const { isLoggedIn, isLoading } = useAuth();
+
+  // Still loading — don't render tabs or redirect yet
+  if (isLoading) return null;
+
+  // Not authenticated — send to login (index will show form, not redirect back)
+  if (!isLoggedIn) {
+    console.log('[TabLayout] not logged in → redirecting to login');
+    return <Redirect href="/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -96,7 +117,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="bookings"
         options={{
@@ -106,7 +126,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="profile"
         options={{

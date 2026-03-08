@@ -1,61 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Redirect } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import LoginScreen from '../screens/Login';
 
 /**
- * app/index.tsx — THE single auth entry point.
+ * app/index.tsx — entry point that reacts to auth state.
  *
- * LOGIC:
- *   1. Renders a black splash while checking AsyncStorage (checked=false).
- *   2. If user exists in storage → router.replace('/(tabs)') — go home.
- *   3. If no user           → render the Login form (checked=true, loggedIn=false).
+ * isLoading=true  → show black splash (AsyncStorage not yet read)
+ * isLoggedIn=true → Redirect to tabs (user is authenticated)
+ * isLoggedIn=false → render Login form
  *
- * ON LOGIN  → LoginScreen saves user to AsyncStorage, calls router.replace('/(tabs)').
- * ON LOGOUT → Profile calls logout() (clears storage), calls router.replace('/').
- *             This screen mounts again, sees no user, shows Login form. Done.
- *
- * No circular redirects. No re-mount loops. No segment guards.
+ * No imperative router calls. No loops.
+ * AuthContext owns the state; this screen just reacts.
  */
 export default function IndexScreen() {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const { isLoggedIn, isLoading } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkAuth = async () => {
-      try {
-        const user = await AsyncStorage.getItem('user');
-        console.log('[IndexScreen] user in storage:', !!user);
-
-        if (cancelled) return;
-
-        if (user) {
-          // Logged in — go straight to tabs, no login screen shown
-          console.log('[IndexScreen] → navigating to (tabs)');
-          router.replace('/(tabs)');
-          // Don't set ready=true; we're navigating away anyway
-        } else {
-          // Not logged in — show login form
-          console.log('[IndexScreen] → showing login form');
-          setReady(true);
-        }
-      } catch (e) {
-        console.error('[IndexScreen] AsyncStorage error:', e);
-        if (!cancelled) setReady(true); // Show login form on error
-      }
-    };
-
-    checkAuth();
-    return () => { cancelled = true; };
-  }, []);
-
-  // While checking: show black splash, no flash
-  if (!ready) {
+  // While AuthContext reads AsyncStorage — show black splash, no flash
+  if (isLoading) {
     return <View style={{ flex: 1, backgroundColor: '#0a0a0a' }} />;
   }
 
+  // Logged in — redirect to tabs (Redirect component handles correct root navigation)
+  if (isLoggedIn) {
+    console.log('[IndexScreen] isLoggedIn=true → redirecting to (tabs)');
+    return <Redirect href="/(tabs)" />;
+  }
+
+  // Not logged in — show login form
+  console.log('[IndexScreen] isLoggedIn=false → showing login');
   return <LoginScreen />;
 }
