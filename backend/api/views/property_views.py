@@ -64,10 +64,14 @@ def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
     count = 0
     for p in Property.objects.all():
+        p.latitude = None
+        p.longitude = None
         p.save()
         count += 1
         
     for p in ListedProperty.objects.all():
+        p.latitude = None
+        p.longitude = None
         p.save()
         count += 1
         
