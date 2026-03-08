@@ -3,7 +3,6 @@ import {
     View, Text, FlatList, Dimensions, RefreshControl, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
@@ -11,6 +10,7 @@ import LocationModal from '@/components/LocationModal';
 import HomeHeader from '@/components/HomeHeader';
 import HomeStateIndicator from '@/components/HomeStateIndicator';
 import { useLikedViewed, PropertyData } from '@/contexts/LikedViewedContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { styles } from './styles';
 
 const API_URL = 'https://realestate3d.onrender.com/api';
@@ -21,7 +21,7 @@ const LEFT_PADDING = 20 - CARD_MARGIN;
 
 export default function HomeScreen() {
     const router = useRouter();
-    const [user, setUser] = useState<any>(null);
+    const { user } = useAuth();
     const [properties, setProperties] = useState<PropertyData[]>([]);
     const [listedProperties, setListedProperties] = useState<PropertyData[]>([]);
     const [filteredProperties, setFilteredProperties] = useState<PropertyData[]>([]);
@@ -40,20 +40,9 @@ export default function HomeScreen() {
     // Track previous coords to avoid redundant fetches
     const prevCoordsRef = useRef<string | null>(null);
 
-    // Load location ONCE on initial mount — never on tab focus
-    // This prevents the modal from re-appearing every time the home tab is visited
     useEffect(() => {
         loadLocation();
-        loadUser();
     }, []);
-
-    // Re-read user from AsyncStorage every time Home tab gains focus
-    // This picks up profile photo changes made on the Profile page
-    useFocusEffect(
-        useCallback(() => {
-            loadUser();
-        }, [])
-    );
 
     useEffect(() => {
         fetchAllProperties(userCoords);
@@ -104,16 +93,6 @@ export default function HomeScreen() {
         setFilteredListedProperties(listedResult);
     }, [searchQuery, properties, listedProperties, activeFilter]);
 
-    const loadUser = async () => {
-        try {
-            const userData = await AsyncStorage.getItem('user');
-            if (userData) {
-                setUser(JSON.parse(userData));
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    };
 
     const loadLocation = async () => {
         try {

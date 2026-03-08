@@ -3,8 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
     isLoggedIn: boolean;
-    isLoading: boolean;       // true while we're checking AsyncStorage on boot
+    isLoading: boolean;
+    user: any;
     setLoggedIn: (value: boolean) => void;
+    setUser: (user: any) => void;
     logout: () => Promise<void>;
 }
 
@@ -18,16 +20,19 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [isLoading, setIsLoading] = useState(true); // starts true until storage is read
+    const [isLoading, setIsLoading] = useState(true);
+    const [user, setUserState] = useState<any>(null);
 
     // On mount: read AsyncStorage ONCE to seed in-memory state
     useEffect(() => {
         AsyncStorage.getItem('user')
             .then(raw => {
-                console.log('[AuthContext] user in storage on boot:', !!raw);
-                setIsLoggedIn(!!raw);
+                if (raw) {
+                    setUserState(JSON.parse(raw));
+                    setIsLoggedIn(true);
+                }
             })
-            .catch(() => setIsLoggedIn(false))
+            .catch(() => { })
             .finally(() => setIsLoading(false));
     }, []);
 
@@ -35,12 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoggedIn(value);
     }, []);
 
-    /**
-     * logout():
-     *  1. Clears AsyncStorage first (so storage is fully wiped)
-     *  2. Sets isLoggedIn=false synchronously in memory
-     * Routes that consume isLoggedIn will react immediately.
-     */
+    // Update user in both memory and AsyncStorage
+    const setUser = useCallback((userData: any) => {
+        setUserState(userData);
+        if (userData) {
+            AsyncStorage.setItem('user', JSON.stringify(userData));
+        }
+    }, []);
+
     const logout = useCallback(async () => {
         await AsyncStorage.multiRemove([
             'user',
@@ -50,11 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'liked_properties',
         ]);
         setIsLoggedIn(false);
-        console.log('[AuthContext] logout complete, isLoggedIn=false');
+        setUserState(null);
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, isLoading, setLoggedIn, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, isLoading, user, setLoggedIn, setUser, logout }}>
             {children}
         </AuthContext.Provider>
     );

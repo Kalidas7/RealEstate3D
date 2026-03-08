@@ -33,7 +33,7 @@ export default function ProfileScreen() {
     const [user, setUser] = useState<User | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('profile');
     const { likedProperties, refreshLiked, viewedProperties, clearAll } = useLikedViewed();
-    const { logout } = useAuth();
+    const { logout, user: authUser, setUser: setAuthUser } = useAuth();
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
     // Edit Profile State
@@ -43,8 +43,15 @@ export default function ProfileScreen() {
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        loadUser();
-    }, []);
+        // Use context user if available (already loaded), otherwise read storage
+        if (authUser) {
+            setUser(authUser);
+            setEditUsername(authUser.username || '');
+            setEditContact(authUser.profile?.contact_number || '');
+        } else {
+            loadUser();
+        }
+    }, [authUser]);
 
     const handleTabChange = (tab: TabType) => {
         Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }).start(() => {
@@ -55,12 +62,14 @@ export default function ProfileScreen() {
         });
     };
 
+
     const loadUser = async () => {
         try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
+                setAuthUser(parsedUser);
                 setEditUsername(parsedUser.username || '');
                 setEditContact(parsedUser.profile?.contact_number || '');
             }
@@ -154,7 +163,7 @@ export default function ProfileScreen() {
             const data = await response.json();
             if (response.ok) {
                 setUser(data.user);
-                await AsyncStorage.setItem('user', JSON.stringify(data.user));
+                setAuthUser(data.user); // propagate to Home via context
                 setIsEditing(false);
                 if (!newProfilePicUri) {
                     Alert.alert('Success', 'Profile updated successfully.');
