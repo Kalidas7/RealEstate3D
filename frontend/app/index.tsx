@@ -1,20 +1,9 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginScreen from '../screens/Login';
 
-/**
- * app/index.tsx — auth entry point.
- *
- * isLoading=true   → black splash while AuthContext reads AsyncStorage
- * isLoggedIn=true  → navigate to tabs (runs once via useEffect)
- * isLoggedIn=false → render login form
- *
- * On LOGOUT: Profile clears storage → reloads the app → AuthContext reads
- *            empty storage → isLoggedIn=false → this screen shows login form.
- *            No Redirect loops. App is fully reset.
- */
 export default function IndexScreen() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
@@ -25,9 +14,13 @@ export default function IndexScreen() {
     }
   }, [isLoading, isLoggedIn]);
 
-  // While loading or navigating away — black splash
+  // While loading or navigating away — styled splash (not a bare black screen)
   if (isLoading || isLoggedIn) {
-    return <View style={{ flex: 1, backgroundColor: '#0a0a0a' }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#5B8DEF" />
+      </View>
+    );
   }
 
   // Not logged in — show login form

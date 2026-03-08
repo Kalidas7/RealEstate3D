@@ -1,9 +1,8 @@
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { useAuth } from '@/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -35,14 +34,6 @@ function AnimatedTabIcon({ name, color, focused }: AnimatedTabIconProps) {
 }
 
 export default function TabLayout() {
-  const { isLoggedIn, isLoading } = useAuth();
-
-  // ChatGPT pattern: if not logged in, redirect to login
-  // This ensures the tabs layout unmounts immediately
-  if (!isLoading && !isLoggedIn) {
-    return <Redirect href="/" />;
-  }
-
   return (
     <Tabs
       screenOptions={{

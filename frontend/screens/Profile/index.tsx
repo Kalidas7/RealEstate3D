@@ -77,16 +77,24 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     try {
                         clearAll();
-                        // ChatGPT's pattern: clear storage first, then set state, then navigate
-                        await AsyncStorage.multiRemove([
-                            'user',
-                            'access_token',
-                            'refresh_token',
-                            'liked_ids',
-                            'liked_properties',
-                        ]);
-                        logout(); // sets isLoggedIn=false in AuthContext (don't await - it's sync state)
-                        router.replace('/');
+                        await logout(); // clears AsyncStorage + sets isLoggedIn=false
+
+                        // Force a full app reload to reset ALL state:
+                        // navigation stack, contexts, in-memory data.
+                        // On fresh boot, AuthContext reads empty storage → login form.
+                        const { DevSettings } = require('react-native');
+                        if (__DEV__ && DevSettings?.reload) {
+                            DevSettings.reload();
+                        } else {
+                            // Production: use expo-updates
+                            try {
+                                const Updates = require('expo-updates');
+                                await Updates.reloadAsync();
+                            } catch {
+                                // Fallback: navigate to index
+                                router.replace('/');
+                            }
+                        }
                     } catch (error) {
                         console.error('[Logout] Error:', error);
                         router.replace('/');
