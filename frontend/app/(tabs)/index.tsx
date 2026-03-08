@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
 import LocationModal from '@/components/LocationModal';
+import HomeHeader from '@/components/HomeHeader';
+import HomeStateIndicator from '@/components/HomeStateIndicator';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -256,31 +258,11 @@ export default function HomeScreen() {
   };
 
   if (loading && properties.length === 0) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#667eea" />
-          <Text style={styles.loadingText}>Loading properties...</Text>
-        </View>
-      </View>
-    );
+    return <HomeStateIndicator type="loading" />;
   }
 
   if (serverError && properties.length === 0) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.centerContent}>
-          <Text style={styles.errorIcon}>🔌</Text>
-          <Text style={styles.errorTitle}>Backend Offline</Text>
-          <Text style={styles.errorSubtitle}>
-            We can't reach the server right now. Make sure the Django backend is running.
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryText}>Retry Connection</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+    return <HomeStateIndicator type="error" onRetry={onRefresh} />;
   }
 
   const profilePicUrl = user?.profile?.profile_pic
@@ -294,58 +276,17 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ─── Header ─────────────────────────────────────────── */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greeting}>Discover</Text>
-            <Text style={styles.title}>Properties</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton} activeOpacity={0.8}>
-            {profilePicUrl ? (
-              <Image source={{ uri: profilePicUrl }} style={{ width: 45, height: 45, borderRadius: 22.5 }} />
-            ) : (
-              <Ionicons name="person-outline" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search buildings or locations..."
-            placeholderTextColor="rgba(255,255,255,0.6)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity onPress={() => setIsFilterVisible(!isFilterVisible)} style={styles.filterIconButton}>
-            <Ionicons name="options-outline" size={20} color={isFilterVisible ? "#667eea" : "#fff"} />
-          </TouchableOpacity>
-        </View>
-
-        {isFilterVisible && (
-          <View style={styles.filterOptionsContainer}>
-            <TouchableOpacity
-              style={styles.filterOption}
-              onPress={() => { setShowLocationModal(true); setIsFilterVisible(false); }}
-            >
-              <Text style={styles.filterOptionText}>📍 Location {selectedCity ? `(${selectedCity})` : ''}</Text>
-            </TouchableOpacity>
-            {['Place', 'Villa', 'Type', 'Bedroom'].map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                style={[styles.filterOption, activeFilter === filter && styles.filterOptionActive]}
-                onPress={() => selectFilter(filter)}
-              >
-                <Text style={[styles.filterOptionText, activeFilter === filter && styles.filterOptionTextActive]}>
-                  {filter}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
+      <HomeHeader
+        profilePicUrl={profilePicUrl}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isFilterVisible={isFilterVisible}
+        setIsFilterVisible={setIsFilterVisible}
+        activeFilter={activeFilter}
+        selectFilter={selectFilter}
+        selectedCity={selectedCity}
+        onLocationPress={() => { setShowLocationModal(true); setIsFilterVisible(false); }}
+      />
 
       {/* ─── Sponsored Properties (Horizontal Carousel) ───── */}
       <View style={styles.sectionHeader}>
@@ -385,11 +326,7 @@ export default function HomeScreen() {
           )}
         />
       ) : (
-        <View style={styles.emptySection}>
-          <Text style={styles.emptyText}>
-            {searchQuery ? 'No properties match your search' : 'No properties available'}
-          </Text>
-        </View>
+        <HomeStateIndicator type="empty" message={searchQuery ? 'No properties match your search' : 'No properties available'} />
       )}
 
       {/* ─── All Properties (Vertical List) ────────────────── */}
@@ -418,9 +355,7 @@ export default function HomeScreen() {
           />
         ))
       ) : (
-        <View style={styles.emptySection}>
-          <Text style={styles.emptyText}>No listed properties yet</Text>
-        </View>
+        <HomeStateIndicator type="empty" message="No listed properties yet" />
       )}
 
       {/* Bottom spacing */}
@@ -430,6 +365,15 @@ export default function HomeScreen() {
         visible={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         onSelectLocation={handleLocationSelect}
+        onSkipOption={async () => {
+          try {
+            await AsyncStorage.removeItem('user_coords');
+            setUserCoords(null);
+          } catch (e) {
+            console.error(e);
+          }
+          setShowLocationModal(false);
+        }}
       />
     </ScrollView>
   );
@@ -440,150 +384,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a',
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    backgroundColor: 'transparent',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  greeting: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  profileButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileIcon: {
-    fontSize: 24,
-  },
-  searchContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    paddingVertical: Platform.OS === 'android' ? 10 : 12,
-    marginBottom: 6,
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#fff',
-    paddingVertical: 0,
-  },
-  filterIconButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  filterOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  filterOption: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  filterOptionActive: { backgroundColor: '#667eea', borderColor: '#667eea' },
-  filterOptionText: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  filterOptionTextActive: { color: '#fff', fontWeight: 'bold' },
-
-  // Section headers
   sectionHeader: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    marginBottom: 12,
-    marginTop: 8,
+    marginTop: 10,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   sectionSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
-    marginTop: 2,
-  },
-
-  // States
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    minHeight: 300,
-  },
-  loadingText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 16,
-    marginTop: 40,
-  },
-  emptySection: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999',
     fontSize: 14,
-  },
-  errorIcon: {
-    fontSize: 60,
-    marginBottom: 20,
-  },
-  errorTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  errorSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30,
-  },
-  retryButton: {
-    backgroundColor: 'rgba(102, 126, 234, 0.2)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#667eea',
-  },
-  retryText: {
-    color: '#667eea',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
   },
 });

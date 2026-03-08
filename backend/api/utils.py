@@ -8,9 +8,28 @@ def extract_coords_from_maps_link(url):
     try:
         response = requests.get(url, allow_redirects=True, timeout=5)
         expanded_url = response.url
+        
+        # Strategy 1: URL contains @lat,lon
         match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
         if match:
             return float(match.group(1)), float(match.group(2))
+            
+        # Strategy 2: URL contains ll=lat,lon
+        match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+            
+        # Strategy 3: Check HTML Meta Tags
+        html = response.text
+        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
+        if meta_match:
+            return float(meta_match.group(1)), float(meta_match.group(2))
+            
+        # Strategy 4: Check JS Array in HTML
+        html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
+        if html_match:
+            return float(html_match.group(1)), float(html_match.group(2))
+            
     except Exception as e:
         print(f"Error extracting coordinates: {e}")
     return None, None

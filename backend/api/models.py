@@ -60,7 +60,7 @@ class Property(models.Model):
             else:
                 try:
                     old_instance = Property.objects.get(pk=self.pk)
-                    if old_instance.location_link != self.location_link:
+                    if old_instance.location_link != self.location_link or self.latitude is None or self.longitude is None:
                         update_coords = True
                 except Property.DoesNotExist:
                     update_coords = True
@@ -105,7 +105,7 @@ class ListedProperty(models.Model):
             else:
                 try:
                     old_instance = ListedProperty.objects.get(pk=self.pk)
-                    if old_instance.location_link != self.location_link:
+                    if old_instance.location_link != self.location_link or self.latitude is None or self.longitude is None:
                         update_coords = True
                 except ListedProperty.DoesNotExist:
                     update_coords = True

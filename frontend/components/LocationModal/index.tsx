@@ -8,6 +8,7 @@ interface LocationModalProps {
     visible: boolean;
     onClose: () => void;
     onSelectLocation: (city: string, lat: number | null, lon: number | null) => void;
+    onSkipOption: () => void;
 }
 
 const CITIES = [
@@ -16,7 +17,7 @@ const CITIES = [
     { name: "Kollam", lat: 8.8932, lon: 76.5596 }
 ];
 
-export default function LocationModal({ visible, onClose, onSelectLocation }: LocationModalProps) {
+export default function LocationModal({ visible, onClose, onSelectLocation, onSkipOption }: LocationModalProps) {
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
 
@@ -117,6 +118,10 @@ export default function LocationModal({ visible, onClose, onSelectLocation }: Lo
                                     ))}
                                 </View>
                             )}
+
+                            <TouchableOpacity style={styles.skipBtn} onPress={onSkipOption}>
+                                <Text style={styles.skipText}>Skip for now</Text>
+                            </TouchableOpacity>
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -244,4 +249,13 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.9)',
         fontSize: 14,
     },
+    skipBtn: {
+        marginTop: 20,
+        paddingVertical: 10,
+    },
+    skipText: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 14,
+        textDecorationLine: 'underline',
+    }
 });
