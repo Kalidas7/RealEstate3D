@@ -95,7 +95,7 @@ export default function LoginScreen() {
                     console.log('User data and tokens saved');
                     await refreshLiked();
                     setLoggedIn(true);
-                    // index.tsx useEffect handles navigation to (tabs)
+                    router.replace('/(tabs)');
                 } else {
                     Alert.alert('Login Failed', data.error);
                 }
@@ -144,7 +144,7 @@ export default function LoginScreen() {
                 await AsyncStorage.setItem('user', JSON.stringify(data.user));
                 await refreshLiked();
                 setLoggedIn(true);
-                // index.tsx useEffect handles navigation to (tabs)
+                router.replace('/(tabs)');
             } else {
                 Alert.alert('Signup Failed', data.error);
             }
