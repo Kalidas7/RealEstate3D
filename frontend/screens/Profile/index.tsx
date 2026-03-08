@@ -76,13 +76,13 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
+                        console.log('[Logout] Step 1: clearing context state');
                         clearAll();
-                        // Clear storage FIRST so it's fully wiped before any navigation
+                        console.log('[Logout] Step 2: clearing AsyncStorage + setting isLoggedIn=false');
                         await logout();
-                        // Explicit navigate immediately — the AuthGuard acts as a backup
-                        router.replace('/');
+                        console.log('[Logout] Step 3: done — AuthGuard Redirect should fire now');
                     } catch (error) {
-                        console.error('Logout error:', error);
+                        console.error('[Logout] Error:', error);
                         router.replace('/');
                     }
                 },
