@@ -62,35 +62,37 @@ def get_listed_properties(request):
 @api_view(['GET'])
 def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
-    count = 0
-    
-    # Update regular properties
-    for p in Property.objects.all():
-        lat, lon = extract_coords_from_maps_link(p.location_link)
-        if lat and lon:
-            p.latitude = lat
-            p.longitude = lon
-            p.save()
-            count += 1
-            
-    # Update listed properties
-    for p in ListedProperty.objects.all():
-        lat, lon = extract_coords_from_maps_link(p.location_link)
-        if lat and lon:
-            p.latitude = lat
-            p.longitude = lon
-            p.save()
-            count += 1
-            
-    # Brute-force override for known Texas fallbacks
-    # ID 1 (Sowparnika Atrium Kerala)
-    ListedProperty.objects.filter(id=1).update(latitude=8.8899584, longitude=76.5820928)
-    
-    # Generic cleanup for anything still in Texas (Render datacenter center)
-    Property.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
-    ListedProperty.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
+    try:
+        count = 0
         
-    return JsonResponse({"status": "success", "count": count})
+        # 1. Standard extraction for Properties
+        for p in Property.objects.all():
+            lat, lon = extract_coords_from_maps_link(p.location_link)
+            if lat and lon:
+                p.latitude = lat
+                p.longitude = lon
+                p.save()
+                count += 1
+                
+        # 2. Standard extraction for ListedProperties
+        for p in ListedProperty.objects.all():
+            lat, lon = extract_coords_from_maps_link(p.location_link)
+            if lat and lon:
+                p.latitude = lat
+                p.longitude = lon
+                p.save()
+                count += 1
+                
+        # 3. Brute-force override for known stubborn records
+        ListedProperty.objects.filter(id=1).update(latitude=8.8899584, longitude=76.5820928)
+        
+        # 4. Wipe any lingering Texas fallbacks
+        Property.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
+        ListedProperty.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
+            
+        return JsonResponse({"status": "success", "processed_count": count})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
 @api_view(['GET'])
 def test_extract(request):
     """Diagnose Google Maps blocking Render logic"""
