@@ -64,8 +64,9 @@ def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
     try:
         count = 0
+        from api.utils import extract_coords_from_maps_link
         
-        # 1. Standard extraction for Properties
+        # 1. Update regular properties
         for p in Property.objects.all():
             lat, lon = extract_coords_from_maps_link(p.location_link)
             if lat and lon:
@@ -74,7 +75,7 @@ def migrate_coords(request):
                 p.save()
                 count += 1
                 
-        # 2. Standard extraction for ListedProperties
+        # 2. Update listed properties
         for p in ListedProperty.objects.all():
             lat, lon = extract_coords_from_maps_link(p.location_link)
             if lat and lon:
@@ -82,43 +83,7 @@ def migrate_coords(request):
                 p.longitude = lon
                 p.save()
                 count += 1
-                
-        # 3. Brute-force override for known stubborn records
-        ListedProperty.objects.filter(id=1).update(latitude=8.8899584, longitude=76.5820928)
-        
-        # 4. Wipe any lingering Texas fallbacks
-        Property.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
-        ListedProperty.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
             
         return JsonResponse({"status": "success", "processed_count": count})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
-@api_view(['GET'])
-def test_extract(request):
-    """Diagnose Google Maps blocking Render logic"""
-    import requests, re
-    url = request.query_params.get('url', 'https://maps.app.goo.gl/ZN38y9kdoD8ZvqED6?g_st=ic')
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        res = requests.get(url, allow_redirects=True, headers=headers, timeout=5)
-        html = res.text
-        
-        # Look for coordinates in HTML
-        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
-        html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
-        
-        # Look for !3d...!4d coord patterns
-        ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
-        
-        return JsonResponse({
-            "status_code": res.status_code,
-            "expanded_url": res.url,
-            "meta": meta_match.groups() if meta_match else None,
-            "html_array": html_match.groups() if html_match else None,
-            "ll_pattern": ll_match.groups() if ll_match else None,
-            "html_snippet": html[:2000] # Increased snippet size
-        })
-    except Exception as e:
-        return JsonResponse({"error": str(e)})

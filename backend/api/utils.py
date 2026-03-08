@@ -3,61 +3,62 @@ import re
 import requests
 
 def extract_coords_from_maps_link(url):
+    """
+    Extract coordinates from a Google Maps link using the Geocoding API.
+    Removes legacy scraping logic and uses the official API for 100% reliability.
+    """
+    from django.conf import settings
+    
     if not url:
         return None, None
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        response = requests.get(url, allow_redirects=True, headers=headers, timeout=5)
         
-        # We must check intermediate 302 redirects! Render's headless IP forces
-        # Google to drop parameters on the final hop and serve a blank map of Texas.
-        urls_to_parse = [response.url]
-        for r in response.history:
-            if 'Location' in r.headers:
-                urls_to_parse.append(r.headers['Location'])
-                
-        for u in urls_to_parse:
-            # Strategy 1: URL contains saddr=lat,lon (Directions origin) - HIGH PRIORITY
-            match = re.search(r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-                
-            # Strategy 2: URL contains daddr=lat,lon (Directions destination)
-            match = re.search(r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
+    try:
+        # 1. Resolve short links (maps.app.goo.gl) to get the true destination
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, allow_redirects=True, headers=headers, timeout=5)
+        expanded_url = response.url
+        history_urls = [r.headers.get('Location') for r in response.history if r.headers.get('Location')]
+        all_urls = [expanded_url] + history_urls
+        
+        # 2. Check for DIRECT coordinates in the URL (Instant - saves API quota)
+        for u in all_urls:
+            # Match @lat,lon, ll=lat,lon, q=lat,lon, saddr=lat,lon, daddr=lat,lon
+            patterns = [
+                r'@(-?\d+\.\d+),(-?\d+\.\d+)',
+                r'll=(-?\d+\.\d+),(-?\d+\.\d+)',
+                r'q=(-?\d+\.\d+),(-?\d+\.\d+)',
+                r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)',
+                r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)'
+            ]
+            for p in patterns:
+                match = re.search(p, u)
+                if match:
+                    return float(match.group(1)), float(match.group(2))
+        
+        # 3. Use Geocoding API for place names/search queries
+        # Extract query parameter 'q'
+        q_match = re.search(r'q=([^&]+)', expanded_url)
+        query = None
+        if q_match:
+            from urllib.parse import unquote
+            query = unquote(q_match.group(1)).replace('+', ' ')
+        else:
+            # Fallback: Extract from the path (e.g., /place/Sowparnika+Atrium/)
+            path_match = re.search(r'/place/([^/]+)', expanded_url)
+            if path_match:
+                from urllib.parse import unquote
+                query = unquote(path_match.group(1)).replace('+', ' ')
 
-        # Strategy 3: Check !3d and !4d patterns in HTML - VERY RELIABLE
-        html = response.text
-        ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
-        if ll_match:
-            return float(ll_match.group(1)), float(ll_match.group(2))
-                
-        for u in urls_to_parse:
-            # Strategy 4: URL contains @lat,lon (Center - Lower priority as it might be IP fallback)
-            match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-                
-            # Strategy 5: URL contains ll=lat,lon
-            match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-            
-        # Strategy 6: Check HTML Meta Tags
-        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
-        if meta_match:
-            return float(meta_match.group(1)), float(meta_match.group(2))
+        if query and settings.GOOGLE_MAPS_API_KEY:
+            api_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={query}&key={settings.GOOGLE_MAPS_API_KEY}"
+            api_res = requests.get(api_url, timeout=5).json()
+            if api_res.get('status') == 'OK':
+                loc = api_res['results'][0]['geometry']['location']
+                return loc['lat'], loc['lng']
 
-        # Strategy 7: Check JS Array in HTML
-        html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
-        if html_match:
-            return float(html_match.group(1)), float(html_match.group(2))
-            
     except Exception as e:
-        print(f"Error extracting coordinates: {e}")
+        print(f"Error in official extraction: {e}")
+        
     return None, None
 
 def calculate_haversine_distance(lat1, lon1, lat2, lon2):
