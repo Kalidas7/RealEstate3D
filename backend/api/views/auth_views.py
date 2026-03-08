@@ -104,8 +104,17 @@ def signup_user(request):
             profile_pic=profile_pic
         )
         
-        serializer = UserSerializer(user)
-        return Response({"message": "User created successfully", "user": serializer.data}, status=status.HTTP_201_CREATED)
+        profile_obj = UserProfile.objects.get(user=user)
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'profile': {
+                'contact_number': profile_obj.contact_number if profile_obj.contact_number else '',
+                'profile_pic': request.build_absolute_uri(profile_obj.profile_pic.url) if profile_obj.profile_pic else None
+            }
+        }
+        return Response({"message": "User created successfully", "user": user_data}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
