@@ -39,16 +39,16 @@ def extract_coords_from_maps_link(url):
             if match:
                 return float(match.group(1)), float(match.group(2))
             
-        # Strategy 3: Check HTML Meta Tags
+        # Strategy 3: Check !3d and !4d patterns in HTML
         html = response.text
-        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
-        if meta_match:
-            return float(meta_match.group(1)), float(meta_match.group(2))
-            
-        # Strategy 4: Check !3d and !4d patterns in HTML
         ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
         if ll_match:
             return float(ll_match.group(1)), float(ll_match.group(2))
+
+        # Strategy 4: Check HTML Meta Tags
+        meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
+        if meta_match:
+            return float(meta_match.group(1)), float(meta_match.group(2))
 
         # Strategy 5: Check JS Array in HTML
         html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
