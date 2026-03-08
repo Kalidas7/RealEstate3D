@@ -81,15 +81,19 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     try {
                         clearAll();
-                        await AsyncStorage.removeItem('user');
-                        await AsyncStorage.removeItem('access_token');
-                        await AsyncStorage.removeItem('refresh_token');
+                        // Only remove auth keys — preserve user_location/user_coords
+                        // so the location modal doesn't re-appear on next login
+                        await AsyncStorage.multiRemove([
+                            'user',
+                            'access_token',
+                            'refresh_token',
+                            'liked_ids',
+                            'liked_properties',
+                        ]);
                     } catch (error) {
-                        console.error("Logout storage clear error:", error);
+                        console.error('Logout storage clear error:', error);
                     } finally {
-                        setTimeout(() => {
-                            router.replace('/');
-                        }, 100);
+                        router.replace('/');
                     }
                 },
             },

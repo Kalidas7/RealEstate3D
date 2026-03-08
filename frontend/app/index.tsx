@@ -25,16 +25,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If we just logged out, don't auto-redirect
-    if (params.logout === 'true') {
-      // Force clear ALL storage
-      AsyncStorage.clear().then(() => {
-        console.log('All storage cleared on logout');
-      });
-      return; // Stay on login screen
-    }
     checkUser();
-  }, [params.logout]);
+  }, []);
 
   const checkUser = async () => {
     try {
