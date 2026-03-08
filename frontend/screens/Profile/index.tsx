@@ -76,13 +76,25 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
-                        console.log('[Logout] Clearing state and storage...');
                         clearAll();
-                        await logout(); // clears AsyncStorage, sets isLoggedIn=false
-                        console.log('[Logout] Done. Navigating to index (login)...');
-                        // Navigate to the root index — it will check AsyncStorage,
-                        // find no user, and show the login form. Clean and simple.
-                        router.replace('/');
+                        await logout(); // clears AsyncStorage + sets isLoggedIn=false
+
+                        // Force a full app reload to reset ALL state:
+                        // navigation stack, contexts, in-memory data.
+                        // On fresh boot, AuthContext reads empty storage → login form.
+                        const { DevSettings } = require('react-native');
+                        if (__DEV__ && DevSettings?.reload) {
+                            DevSettings.reload();
+                        } else {
+                            // Production: use expo-updates
+                            try {
+                                const Updates = require('expo-updates');
+                                await Updates.reloadAsync();
+                            } catch {
+                                // Fallback: navigate to index
+                                router.replace('/');
+                            }
+                        }
                     } catch (error) {
                         console.error('[Logout] Error:', error);
                         router.replace('/');
