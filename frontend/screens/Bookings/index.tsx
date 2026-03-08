@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Linking, Alert, Platform, Animated, LayoutAnimation, UIManager } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -6,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Calendar from 'expo-calendar';
-import BookingModal from '../../components/BookingModal';
+import BookingModal from '@/components/BookingModal';
 import { useAsyncBackendSync } from '@/hooks/useAsyncBackendSync';
-import { styles } from './_styles';
+import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

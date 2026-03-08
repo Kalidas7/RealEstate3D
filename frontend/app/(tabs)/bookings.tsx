@@ -1,3 +1,1 @@
-
-import BookingsScreen from '../bookings';
-export default BookingsScreen;
+export { default } from '../../screens/Bookings';
