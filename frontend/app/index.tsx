@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,14 +7,16 @@ import LoginScreen from '../screens/Login';
 export default function IndexScreen() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
+  const hasNavigated = useRef(false);
 
   React.useEffect(() => {
-    if (!isLoading && isLoggedIn) {
+    // Only navigate ONCE — prevents the infinite re-render loop
+    if (!isLoading && isLoggedIn && !hasNavigated.current) {
+      hasNavigated.current = true;
       router.replace('/(tabs)');
     }
   }, [isLoading, isLoggedIn]);
 
-  // While loading or navigating away — styled splash (not a bare black screen)
   if (isLoading || isLoggedIn) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center' }}>
@@ -23,6 +25,5 @@ export default function IndexScreen() {
     );
   }
 
-  // Not logged in — show login form
   return <LoginScreen />;
 }
