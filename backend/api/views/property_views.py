@@ -4,7 +4,7 @@ from rest_framework import status
 from django.http import JsonResponse
 from api.models import Property, ListedProperty
 from api.serializers import PropertySerializer, ListedPropertySerializer
-from api.utils import calculate_haversine_distance
+from api.utils import calculate_haversine_distance, extract_coords_from_maps_link
 
 @api_view(['GET'])
 def get_properties(request):
@@ -64,7 +64,6 @@ def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
     logs = []
     count = 0
-    from api.utils import extract_coords_from_maps_link
     
     for p in Property.objects.all():
         lat, lon = extract_coords_from_maps_link(p.location_link)
