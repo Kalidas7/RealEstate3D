@@ -215,7 +215,7 @@ export default function HomeScreen() {
     }
 
     const profilePicUrl = user?.profile?.profile_pic
-        ? (user.profile.profile_pic.startsWith('http') ? user.profile.profile_pic : `${API_URL.replace('/api', '')}${user.profile.profile_pic}`)
+        ? `${user.profile.profile_pic.startsWith('http') ? user.profile.profile_pic : `${API_URL.replace('/api', '')}${user.profile.profile_pic}`}?t=${new Date().getTime()}`
         : null;
 
     console.log('[Home] Render user pic:', user?.profile?.profile_pic);
