@@ -218,6 +218,9 @@ export default function HomeScreen() {
         ? (user.profile.profile_pic.startsWith('http') ? user.profile.profile_pic : `${API_URL.replace('/api', '')}${user.profile.profile_pic}`)
         : null;
 
+    console.log('[Home] Render user pic:', user?.profile?.profile_pic);
+    console.log('[Home] Render computed url:', profilePicUrl);
+
     return (
         <ScrollView
             style={styles.container}

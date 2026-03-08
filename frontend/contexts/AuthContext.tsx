@@ -28,7 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem('user')
             .then(raw => {
                 if (raw) {
-                    setUserState(JSON.parse(raw));
+                    const parsed = JSON.parse(raw);
+                    console.log('[AuthContext] boot user pic:', parsed?.profile?.profile_pic);
+                    setUserState(parsed);
                     setIsLoggedIn(true);
                 }
             })
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update user in both memory and AsyncStorage
     const setUser = useCallback((userData: any) => {
+        console.log('[AuthContext] setUser called, pic:', userData?.profile?.profile_pic);
         setUserState(userData);
         if (userData) {
             AsyncStorage.setItem('user', JSON.stringify(userData));

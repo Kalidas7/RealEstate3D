@@ -162,6 +162,7 @@ export default function ProfileScreen() {
 
             const data = await response.json();
             if (response.ok) {
+                console.log('[Profile] Update response user pic:', data.user?.profile?.profile_pic);
                 setUser(data.user);
                 setAuthUser(data.user); // propagate to Home via context
                 setIsEditing(false);
