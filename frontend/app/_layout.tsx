@@ -16,18 +16,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, setLoggedIn } = useAuth();
   const [isBooting, setIsBooting] = useState(true);
 
-  // Boot check — reads AsyncStorage ONCE to seed in-memory auth state
+  // Boot — reads AsyncStorage ONCE, seeds in-memory auth state
   useEffect(() => {
     let cancelled = false;
-
     const checkOnBoot = async () => {
       try {
         const user = await AsyncStorage.getItem('user');
         if (cancelled) return;
-
         const loggedIn = !!user;
         setLoggedIn(loggedIn);
-
         if (loggedIn) {
           setTimeout(() => router.replace('/(tabs)'), 0);
         }
@@ -35,32 +32,32 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         console.error('[AuthGuard Boot Error]:', err);
         setLoggedIn(false);
       } finally {
-        if (!cancelled) {
-          setTimeout(() => setIsBooting(false), 200);
-        }
+        if (!cancelled) setTimeout(() => setIsBooting(false), 150);
       }
     };
-
     checkOnBoot();
     return () => { cancelled = true; };
   }, []);
 
-  // Segment guard — runs whenever auth state OR current route changes.
-  // Simple pure check: if not logged in and inside tabs → kick to login.
-  // No caching, no skipping — just a clean reactive check.
+  // Redirect guard — fires when auth state or route changes
   useEffect(() => {
     if (isBooting) return;
-
     const inTabs = segments?.[0] === '(tabs)';
-
     if (!isLoggedIn && inTabs) {
       router.replace('/');
     }
   }, [isLoggedIn, segments, isBooting]);
 
+  const inTabs = segments?.[0] === '(tabs)';
+
   return (
     <View style={{ flex: 1 }}>
-      {children}
+      {/* ChatGPT hard-block: if not logged in AND in tabs, render black wall.
+          Protected screens never render even for one frame after logout. */}
+      {!isLoggedIn && inTabs ? (
+        <View style={{ flex: 1, backgroundColor: '#0a0a0a' }} />
+      ) : children}
+      {/* Splash cover during boot so we don't flash login screen to logged-in users */}
       {isBooting && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0a0a0a', zIndex: 999 }} />
       )}

@@ -1,9 +1,8 @@
-import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import { Tabs } from 'expo-router';
+import React from 'react';
 import { StyleSheet, View, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { useAuth } from '@/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -37,27 +36,7 @@ function AnimatedTabIcon({ name, color, focused }: AnimatedTabIconProps) {
   );
 }
 
-/**
- * TabLayout is the layout wrapper for the (tabs) route group.
- * It has its OWN auth guard: if isLoggedIn is false it immediately
- * redirects to the login screen. This is a second layer of defence —
- * the root _layout.tsx AuthGuard is the first layer.
- * Having the guard here guarantees the home screen and all other tab
- * screens cannot render even for one frame when logged out.
- */
 export default function TabLayout() {
-  const { isLoggedIn } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.replace('/');
-    }
-  }, [isLoggedIn]);
-
-  // While redirecting, render nothing — the login screen will appear
-  if (!isLoggedIn) return null;
-
   return (
     <Tabs
       screenOptions={{
