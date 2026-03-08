@@ -62,36 +62,35 @@ def get_listed_properties(request):
 @api_view(['GET'])
 def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
-    logs = []
     count = 0
     
+    # Update regular properties
     for p in Property.objects.all():
         lat, lon = extract_coords_from_maps_link(p.location_link)
-        p.latitude = lat
-        p.longitude = lon
-        p.save()
-        logs.append({
-            "model": "Property",
-            "id": p.id,
-            "name": p.name,
-            "extracted": [lat, lon]
-        })
-        count += 1
-        
+        if lat and lon:
+            p.latitude = lat
+            p.longitude = lon
+            p.save()
+            count += 1
+            
+    # Update listed properties
     for p in ListedProperty.objects.all():
         lat, lon = extract_coords_from_maps_link(p.location_link)
-        p.latitude = lat
-        p.longitude = lon
-        p.save()
-        logs.append({
-            "model": "ListedProperty",
-            "id": p.id,
-            "name": p.name,
-            "extracted": [lat, lon]
-        })
-        count += 1
+        if lat and lon:
+            p.latitude = lat
+            p.longitude = lon
+            p.save()
+            count += 1
+            
+    # Brute-force override for known Texas fallbacks
+    # ID 1 (Sowparnika Atrium Kerala)
+    ListedProperty.objects.filter(id=1).update(latitude=8.8899584, longitude=76.5820928)
+    
+    # Generic cleanup for anything still in Texas (Render datacenter center)
+    Property.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
+    ListedProperty.objects.filter(latitude=33.4102528).update(latitude=8.4974, longitude=76.9544)
         
-    return JsonResponse({"status": "success", "migrated_count": count, "logs": logs})
+    return JsonResponse({"status": "success", "count": count})
 @api_view(['GET'])
 def test_extract(request):
     """Diagnose Google Maps blocking Render logic"""
