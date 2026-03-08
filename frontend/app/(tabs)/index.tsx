@@ -44,11 +44,15 @@ export default function HomeScreen() {
   // Track previous coords to avoid redundant fetches
   const prevCoordsRef = useRef<string | null>(null);
 
+  // Load location ONCE on initial mount — never on tab focus
+  // This prevents the modal from re-appearing every time the home tab is visited
+  useEffect(() => {
+    loadLocation();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadUser();
-      loadLocation();
-      // Sync likes once per tab focus — NOT tied to coord changes
       syncLikedFromBackend();
     }, [])
   );
@@ -118,23 +122,27 @@ export default function HomeScreen() {
       const savedLocation = await AsyncStorage.getItem('user_location');
       const savedCoords = await AsyncStorage.getItem('user_coords');
 
-      if (savedLocation) {
+      if (savedLocation && savedLocation !== 'skipped') {
+        // User has a real location saved
         setSelectedCity(savedLocation);
         if (savedCoords) {
           const parsed = JSON.parse(savedCoords);
           const coordKey = `${parsed.lat},${parsed.lon}`;
-          // Only update state if coords actually changed — prevents useless re-fetches
           if (prevCoordsRef.current !== coordKey) {
             prevCoordsRef.current = coordKey;
             setUserCoords(parsed);
           }
         }
         setShowLocationModal(false);
+      } else if (savedLocation === 'skipped') {
+        // User explicitly skipped — never ask again until they change it
+        setShowLocationModal(false);
       } else {
+        // First time ever — ask for location
         setShowLocationModal(true);
       }
     } catch (e) {
-      console.error("Error loading location:", e);
+      console.error('Error loading location:', e);
       setShowLocationModal(true);
     }
   };
@@ -331,8 +339,9 @@ export default function HomeScreen() {
         onSelectLocation={handleLocationSelect}
         onSkipOption={async () => {
           try {
+            // Store 'skipped' sentinel so we never ask again this session
+            await AsyncStorage.setItem('user_location', 'skipped');
             await AsyncStorage.removeItem('user_coords');
-            await AsyncStorage.removeItem('user_location');
             prevCoordsRef.current = null;
             setUserCoords(null);
             setSelectedCity(null);

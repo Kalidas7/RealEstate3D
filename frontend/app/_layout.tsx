@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,37 +12,51 @@ import { LikedViewedProvider } from '@/contexts/LikedViewedContext';
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
-  // While true, show nothing — prevents any flash to the wrong screen
-  const [isChecking, setIsChecking] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  // Only do initial boot check once — don't re-run on every segment change
+  const hasChecked = useRef(false);
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    if (hasChecked.current) return;
+    hasChecked.current = true;
+
+    const checkOnBoot = async () => {
       try {
         const user = await AsyncStorage.getItem('user');
-        const currentSegment = segments?.[0] as string ?? '';
-        // Any route that is NOT inside (tabs) is considered an auth route (login)
-        const inTabsGroup = currentSegment === '(tabs)';
-
-        if (user && !inTabsGroup) {
-          // Logged in, send to app
+        if (user) {
+          // User is logged in — go to the app
           router.replace('/(tabs)');
-        } else if (!user && inTabsGroup) {
-          // Not logged in, kick to login
+        } else {
+          // No user — go to login
           router.replace('/');
         }
-      } catch (error) {
-        console.error('Auth check failed', error);
+      } catch {
         router.replace('/');
       } finally {
-        setIsChecking(false);
+        setIsReady(true);
       }
     };
 
-    checkAuthStatus();
-  }, [segments]);
+    checkOnBoot();
+  }, []);
 
-  // Show a blank dark screen while checking — never show the wrong screen
-  if (isChecking) {
+  // Also guard against unauthenticated access to (tabs) after boot
+  useEffect(() => {
+    if (!isReady) return;
+
+    const guardRoute = async () => {
+      const user = await AsyncStorage.getItem('user');
+      const inTabs = segments?.[0] === '(tabs)';
+      if (!user && inTabs) {
+        router.replace('/');
+      }
+    };
+
+    guardRoute();
+  }, [segments, isReady]);
+
+  // Show nothing until the initial auth check is done
+  if (!isReady) {
     return <View style={{ flex: 1, backgroundColor: '#0a0a0a' }} />;
   }
 
@@ -67,4 +81,3 @@ export default function RootLayout() {
     </LikedViewedProvider>
   );
 }
-
