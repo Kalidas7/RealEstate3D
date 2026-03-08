@@ -80,9 +80,11 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
+                        // Clear context state first
                         clearAll();
-                        // Only remove auth keys — preserve user_location/user_coords
-                        // so the location modal doesn't re-appear on next login
+                        // Fully await storage clear BEFORE navigating.
+                        // If we navigate before this completes, the login screen's
+                        // old checkUser (removed) could have bounced back to tabs.
                         await AsyncStorage.multiRemove([
                             'user',
                             'access_token',
@@ -90,9 +92,11 @@ export default function ProfileScreen() {
                             'liked_ids',
                             'liked_properties',
                         ]);
+                        // Now safe to navigate — storage is cleared
+                        router.replace('/');
                     } catch (error) {
-                        console.error('Logout storage clear error:', error);
-                    } finally {
+                        console.error('Logout error:', error);
+                        // Even on error, navigate to login
                         router.replace('/');
                     }
                 },

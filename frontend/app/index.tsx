@@ -24,27 +24,11 @@ export default function LoginScreen() {
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  // NOTE: No checkUser() here. The AuthGuard in _layout.tsx handles all boot-time
+  // routing (login → tabs if user exists, tabs → login if no user).
+  // Adding routing logic here creates a race condition with logout storage cleanup.
 
-  const checkUser = async () => {
-    try {
-      const user = await AsyncStorage.getItem('user');
-      console.log('Stored user data:', user);
-      if (user) {
-        const parsed = JSON.parse(user);
-        console.log('Parsed user:', parsed);
-        router.replace('/(tabs)');
-      } else {
-        console.log('No user found, staying on login');
-      }
-    } catch (e) {
-      console.error('Error checking user:', e);
-      // Clear corrupted data
-      await AsyncStorage.removeItem('user');
-    }
-  };
+
 
   const handleCheckEmail = async () => {
     if (!email) return Alert.alert('Error', 'Please enter an email');
