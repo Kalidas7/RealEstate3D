@@ -19,38 +19,39 @@ def extract_coords_from_maps_link(url):
                 urls_to_parse.append(r.headers['Location'])
                 
         for u in urls_to_parse:
-            # Strategy 1: URL contains @lat,lon
-            match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-                
-            # Strategy 2: URL contains ll=lat,lon
-            match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', u)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-                
-            # Strategy 3: URL contains saddr=lat,lon (Directions origin)
+            # Strategy 1: URL contains saddr=lat,lon (Directions origin) - HIGH PRIORITY
             match = re.search(r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
             if match:
                 return float(match.group(1)), float(match.group(2))
                 
-            # Strategy 4: URL contains daddr=lat,lon (Directions destination)
+            # Strategy 2: URL contains daddr=lat,lon (Directions destination)
             match = re.search(r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
             if match:
                 return float(match.group(1)), float(match.group(2))
-            
-        # Strategy 3: Check !3d and !4d patterns in HTML
+
+        # Strategy 3: Check !3d and !4d patterns in HTML - VERY RELIABLE
         html = response.text
         ll_match = re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', html)
         if ll_match:
             return float(ll_match.group(1)), float(ll_match.group(2))
-
-        # Strategy 4: Check HTML Meta Tags
+                
+        for u in urls_to_parse:
+            # Strategy 4: URL contains @lat,lon (Center - Lower priority as it might be IP fallback)
+            match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
+                
+            # Strategy 5: URL contains ll=lat,lon
+            match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
+            
+        # Strategy 6: Check HTML Meta Tags
         meta_match = re.search(r'meta content=".*?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)', html)
         if meta_match:
             return float(meta_match.group(1)), float(meta_match.group(2))
 
-        # Strategy 5: Check JS Array in HTML
+        # Strategy 7: Check JS Array in HTML
         html_match = re.search(r'\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)\]', html)
         if html_match:
             return float(html_match.group(1)), float(html_match.group(2))
