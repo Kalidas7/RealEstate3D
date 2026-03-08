@@ -32,7 +32,7 @@ import { LikedViewedProvider } from '@/contexts/LikedViewedContext';
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
 
   // Boot check — runs once when the app first opens
   useEffect(() => {
@@ -42,16 +42,21 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         const user = await AsyncStorage.getItem('user');
         if (cancelled) return;
+
         if (user) {
-          router.replace('/(tabs)');
+          // Wrap in slight timeout to ensure React Navigation context is totally stabilized
+          setTimeout(() => {
+            router.replace('/(tabs)');
+          }, 0);
         } else {
           router.replace('/');
         }
-      } catch {
-        if (!cancelled) router.replace('/');
+      } catch (err) {
+        console.error('[AuthGuard Boot Error]:', err);
       } finally {
         if (!cancelled) {
-          setTimeout(() => setIsReady(true), 50);
+          // Give navigation time to trigger before uncovering the screen
+          setTimeout(() => setIsBooting(false), 200);
         }
       }
     };
@@ -64,27 +69,29 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // ONLY acts after boot is done, and ONLY kicks unauthenticated
   // users out of the (tabs) group. Does NOT touch the login screen.
   useEffect(() => {
-    if (!isReady) return;
+    if (isBooting) return;
 
     const guard = async () => {
       const user = await AsyncStorage.getItem('user');
       const inTabs = segments?.[0] === '(tabs)';
+
       if (!user && inTabs) {
-        // No user in storage but somehow inside the app — send to login
         router.replace('/');
       }
-      // Note: we deliberately do NOT redirect a logged-in user from '/' to '/(tabs)'
-      // here because the login screen's own submit button handles that routing.
     };
 
     guard();
-  }, [segments, isReady]);
+  }, [segments, isBooting]);
 
-  if (!isReady) {
-    return <View style={{ flex: 1, backgroundColor: '#0a0a0a' }} />;
-  }
-
-  return <>{children}</>;
+  return (
+    <View style={{ flex: 1 }}>
+      {children}
+      {/* Cover the screen while booting so we don't flash the login UI to logged-in users */}
+      {isBooting && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0a0a0a', zIndex: 999 }} />
+      )}
+    </View>
+  );
 }
 
 export default function RootLayout() {
