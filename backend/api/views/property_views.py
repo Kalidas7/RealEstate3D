@@ -64,24 +64,32 @@ def migrate_coords(request):
     """Temporary endpoint to force missing coordinates to update from location_link URLs"""
     logs = []
     count = 0
+    from api.utils import extract_coords_from_maps_link
+    
     for p in Property.objects.all():
-        p.latitude = None
-        p.longitude = None
         lat, lon = extract_coords_from_maps_link(p.location_link)
         p.latitude = lat
         p.longitude = lon
         p.save()
-        logs.append(f"Property {p.id} ({p.name}): {lat}, {lon}")
+        logs.append({
+            "model": "Property",
+            "id": p.id,
+            "name": p.name,
+            "extracted": [lat, lon]
+        })
         count += 1
         
     for p in ListedProperty.objects.all():
-        p.latitude = None
-        p.longitude = None
         lat, lon = extract_coords_from_maps_link(p.location_link)
         p.latitude = lat
         p.longitude = lon
         p.save()
-        logs.append(f"ListedProperty {p.id} ({p.name}): {lat}, {lon}")
+        logs.append({
+            "model": "ListedProperty",
+            "id": p.id,
+            "name": p.name,
+            "extracted": [lat, lon]
+        })
         count += 1
         
     return JsonResponse({"status": "success", "migrated_count": count, "logs": logs})
