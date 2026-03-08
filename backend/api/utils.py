@@ -10,17 +10,34 @@ def extract_coords_from_maps_link(url):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
         response = requests.get(url, allow_redirects=True, headers=headers, timeout=5)
-        expanded_url = response.url
         
-        # Strategy 1: URL contains @lat,lon
-        match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
-        if match:
-            return float(match.group(1)), float(match.group(2))
-            
-        # Strategy 2: URL contains ll=lat,lon
-        match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
-        if match:
-            return float(match.group(1)), float(match.group(2))
+        # We must check intermediate 302 redirects! Render's headless IP forces
+        # Google to drop parameters on the final hop and serve a blank map of Texas.
+        urls_to_parse = [response.url]
+        for r in response.history:
+            if 'Location' in r.headers:
+                urls_to_parse.append(r.headers['Location'])
+                
+        for u in urls_to_parse:
+            # Strategy 1: URL contains @lat,lon
+            match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
+                
+            # Strategy 2: URL contains ll=lat,lon
+            match = re.search(r'll=(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
+                
+            # Strategy 3: URL contains saddr=lat,lon (Directions origin)
+            match = re.search(r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
+                
+            # Strategy 4: URL contains daddr=lat,lon (Directions destination)
+            match = re.search(r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)', u)
+            if match:
+                return float(match.group(1)), float(match.group(2))
             
         # Strategy 3: Check HTML Meta Tags
         html = response.text
