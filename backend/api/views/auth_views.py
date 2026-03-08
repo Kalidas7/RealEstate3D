@@ -1,0 +1,161 @@
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from api.models import UserProfile
+from api.serializers import UserSerializer
+
+@api_view(['POST'])
+def check_email(request):
+    """
+    Checks if an email exists in the database.
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    exists = User.objects.filter(email=email).exists()
+    return Response({"exists": exists, "email": email}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def login_user(request):
+    """
+    Logs in a user with email and password. Returns JWT tokens.
+    """
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if not email or not password:
+        return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Django's authenticate takes username, so we fetch the user by email first
+    try:
+        # Use filter().first() to handle potential duplicates gracefully
+        user_obj = User.objects.filter(email=email).first()
+        
+        if not user_obj:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        user = authenticate(username=user_obj.username, password=password)
+        
+        if user:
+            # Ensure user has a profile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            
+            # Return simple user data without serializer to avoid errors
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'profile': {
+                    'contact_number': profile.contact_number if profile.contact_number else '',
+                    'profile_pic': request.build_absolute_uri(profile.profile_pic.url) if profile.profile_pic else None
+                }
+            }
+            return Response({
+                "message": "Login successful",
+                "user": user_data,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        # Catch any other errors and return them as JSON
+        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def signup_user(request):
+    """
+    Creates a new user with profile details.
+    """
+    email = request.data.get('email')
+    password = request.data.get('password')
+    contact_number = request.data.get('contact_number')
+    profile_pic = request.FILES.get('profile_pic')
+
+    if not email or not password:
+        return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if email already exists
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "Email already registered"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Create User
+        user = User.objects.create_user(username=email, email=email, password=password)
+        
+        # Create UserProfile
+        UserProfile.objects.create(
+            user=user,
+            contact_number=contact_number,
+            profile_pic=profile_pic
+        )
+        
+        serializer = UserSerializer(user)
+        return Response({"message": "User created successfully", "user": serializer.data}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT'])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def update_profile(request):
+    """
+    Updates the user's username, contact number, and profile picture.
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response({"error": "Email is required to identify the user."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # Update username if provided
+        username = request.data.get('username')
+        if username:
+            user.username = username
+            user.save()
+
+        # Update contact number if provided
+        contact_number = request.data.get('contact_number')
+        if contact_number is not None:
+            profile.contact_number = contact_number
+
+        # Update profile picture if provided
+        profile_pic = request.FILES.get('profile_pic')
+        if profile_pic:
+            profile.profile_pic = profile_pic
+
+        profile.save()
+
+        # Return updated user data (matching the login response format)
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'profile': {
+                'contact_number': profile.contact_number if profile.contact_number else '',
+                'profile_pic': request.build_absolute_uri(profile.profile_pic.url) if profile.profile_pic else None
+            }
+        }
+        return Response({"message": "Profile updated successfully", "user": user_data}, status=status.HTTP_200_OK)
+
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

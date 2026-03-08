@@ -1,20 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-import re
-import requests
-
-def extract_coords_from_maps_link(url):
-    if not url:
-        return None, None
-    try:
-        response = requests.get(url, allow_redirects=True, timeout=5)
-        expanded_url = response.url
-        match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
-        if match:
-            return float(match.group(1)), float(match.group(2))
-    except Exception as e:
-        print(f"Error extracting coordinates: {e}")
-    return None, None
+from api.utils import extract_coords_from_maps_link
 
 # --- Your Existing Models (Do not touch) ---
 class UserProfile(models.Model):
