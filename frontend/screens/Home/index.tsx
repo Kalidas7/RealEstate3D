@@ -3,6 +3,7 @@ import {
     View, Text, FlatList, Dimensions, RefreshControl, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
@@ -45,6 +46,14 @@ export default function HomeScreen() {
         loadLocation();
         loadUser();
     }, []);
+
+    // Re-read user from AsyncStorage every time Home tab gains focus
+    // This picks up profile photo changes made on the Profile page
+    useFocusEffect(
+        useCallback(() => {
+            loadUser();
+        }, [])
+    );
 
     useEffect(() => {
         fetchAllProperties(userCoords);
