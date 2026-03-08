@@ -77,10 +77,10 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     try {
                         clearAll();
-                        // logout() clears AsyncStorage then sets isLoggedIn=false.
-                        // The AuthGuard segment guard watches isLoggedIn and will
-                        // automatically call router.replace('/') — no double navigation.
+                        // Clear storage FIRST so it's fully wiped before any navigation
                         await logout();
+                        // Explicit navigate immediately — the AuthGuard acts as a backup
+                        router.replace('/');
                     } catch (error) {
                         console.error('Logout error:', error);
                         router.replace('/');
@@ -164,8 +164,17 @@ export default function ProfileScreen() {
         );
     }
 
+    // Cache-bust the URL with a timestamp so React Native doesn't serve
+    // a cached version from a previous user/session
     const profilePicUrl = user.profile?.profile_pic
-        ? (user.profile.profile_pic.startsWith('http') ? user.profile.profile_pic : `${API_URL}${user.profile.profile_pic}`)
+        ? (() => {
+            const base = user.profile!.profile_pic!.startsWith('http')
+                ? user.profile!.profile_pic!
+                : `${API_URL}${user.profile!.profile_pic}`;
+            // Strip any existing cache-buster then add a fresh unique timestamp
+            const urlWithoutTs = base.split('?')[0];
+            return `${urlWithoutTs}?t=${Date.now()}`;
+        })()
         : null;
 
     const renderPropertyItem = ({ item }: { item: any }) => (
