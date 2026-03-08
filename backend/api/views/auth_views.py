@@ -2,6 +2,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+import time
+import os
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -148,6 +150,21 @@ def update_profile(request):
         # Update profile picture if provided
         profile_pic = request.FILES.get('profile_pic')
         if profile_pic:
+            # Generate a unique filename: user_ID_timestamp.ext
+            ext = profile_pic.name.split('.')[-1] if '.' in profile_pic.name else 'jpg'
+            new_filename = f"user_{user.id}_{int(time.time())}.{ext}"
+            profile_pic.name = new_filename
+            
+            # Delete old profile pic from storage if it exists to save space
+            if profile.profile_pic:
+                # Need to be careful not to delete default images if they are shared,
+                # but since we are moving to unique per-user, we can delete the old one.
+                try:
+                    if os.path.isfile(profile.profile_pic.path):
+                        os.remove(profile.profile_pic.path)
+                except Exception:
+                    pass
+
             profile.profile_pic = profile_pic
 
         profile.save()
