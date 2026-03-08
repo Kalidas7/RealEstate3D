@@ -76,11 +76,13 @@ export default function ProfileScreen() {
                 text: 'Logout', style: 'destructive',
                 onPress: async () => {
                     try {
-                        console.log('[Logout] Step 1: clearing context state');
+                        console.log('[Logout] Clearing state and storage...');
                         clearAll();
-                        console.log('[Logout] Step 2: clearing AsyncStorage + setting isLoggedIn=false');
-                        await logout();
-                        console.log('[Logout] Step 3: done — AuthGuard Redirect should fire now');
+                        await logout(); // clears AsyncStorage, sets isLoggedIn=false
+                        console.log('[Logout] Done. Navigating to index (login)...');
+                        // Navigate to the root index — it will check AsyncStorage,
+                        // find no user, and show the login form. Clean and simple.
+                        router.replace('/');
                     } catch (error) {
                         console.error('[Logout] Error:', error);
                         router.replace('/');
