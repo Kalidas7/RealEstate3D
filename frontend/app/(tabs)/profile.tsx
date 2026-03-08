@@ -84,12 +84,12 @@ export default function ProfileScreen() {
                         await AsyncStorage.removeItem('user');
                         await AsyncStorage.removeItem('access_token');
                         await AsyncStorage.removeItem('refresh_token');
-                        const check = await AsyncStorage.getItem('user');
-                        if (check) await AsyncStorage.clear();
                     } catch (error) {
-                        await AsyncStorage.clear();
+                        console.error("Logout storage clear error:", error);
                     } finally {
-                        router.replace('/?logout=true');
+                        setTimeout(() => {
+                            router.replace('/');
+                        }, 100);
                     }
                 },
             },
@@ -302,11 +302,11 @@ export default function ProfileScreen() {
                             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                            <LinearGradient colors={['#ff6b6b', '#ee5a6f']} style={styles.logoutGradient}>
-                                <Ionicons name="log-out-outline" size={20} color="#fff" />
+                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+                            <View style={styles.logoutContainer}>
+                                <Ionicons name="log-out-outline" size={20} color="#ff4b4b" />
                                 <Text style={styles.logoutText}>Logout</Text>
-                            </LinearGradient>
+                            </View>
                         </TouchableOpacity>
                     </ScrollView>
                 )}
@@ -494,13 +494,15 @@ const styles = StyleSheet.create({
 
     logoutButton: {
         marginHorizontal: 20, marginTop: 28,
-        borderRadius: 16, overflow: 'hidden',
+        borderRadius: 12, overflow: 'hidden',
+        borderWidth: 1, borderColor: '#ff4b4b',
+        backgroundColor: '#1a0a0a',
     },
-    logoutGradient: {
+    logoutContainer: {
         flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'center', paddingVertical: 16, gap: 10,
+        justifyContent: 'center', paddingVertical: 14, gap: 10,
     },
-    logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    logoutText: { color: '#ff4b4b', fontSize: 16, fontWeight: 'bold' },
 
     menuButton: {
         flexDirection: 'row', alignItems: 'center',

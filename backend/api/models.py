@@ -1,5 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
+import re
+import requests
+
+def extract_coords_from_maps_link(url):
+    if not url:
+        return None, None
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=5)
+        expanded_url = response.url
+        match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', expanded_url)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+    except Exception as e:
+        print(f"Error extracting coordinates: {e}")
+    return None, None
 
 # --- Your Existing Models (Do not touch) ---
 class UserProfile(models.Model):
@@ -47,6 +62,31 @@ class Property(models.Model):
         help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022, Geom3D050'
     )
 
+    # Location Coordinates (Extracted from location_link)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.location_link:
+            update_coords = False
+            if not self.pk:
+                update_coords = True
+            else:
+                try:
+                    old_instance = Property.objects.get(pk=self.pk)
+                    if old_instance.location_link != self.location_link:
+                        update_coords = True
+                except Property.DoesNotExist:
+                    update_coords = True
+            
+            if update_coords:
+                lat, lon = extract_coords_from_maps_link(self.location_link)
+                if lat is not None and lon is not None:
+                    self.latitude = lat
+                    self.longitude = lon
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
@@ -67,6 +107,30 @@ class ListedProperty(models.Model):
         blank=True, default='',
         help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022'
     )
+
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.location_link:
+            update_coords = False
+            if not self.pk:
+                update_coords = True
+            else:
+                try:
+                    old_instance = ListedProperty.objects.get(pk=self.pk)
+                    if old_instance.location_link != self.location_link:
+                        update_coords = True
+                except ListedProperty.DoesNotExist:
+                    update_coords = True
+            
+            if update_coords:
+                lat, lon = extract_coords_from_maps_link(self.location_link)
+                if lat is not None and lon is not None:
+                    self.latitude = lat
+                    self.longitude = lon
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

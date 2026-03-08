@@ -3,11 +3,12 @@ from .models import Property, Booking, ListedProperty
 
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'price')
+    list_display = ('name', 'location', 'price', 'latitude', 'longitude')
+    readonly_fields = ('latitude', 'longitude')
     search_fields = ('name', 'location')
     fieldsets = (
         ('Basic Info', {
-            'fields': ('name', 'location', 'location_link', 'price', 'description', 'image')
+            'fields': ('name', 'location', 'location_link', 'latitude', 'longitude', 'price', 'description', 'image')
         }),
         ('Property Details', {
             'fields': ('bedrooms', 'bathrooms', 'area')
@@ -23,11 +24,12 @@ class PropertyAdmin(admin.ModelAdmin):
 
 @admin.register(ListedProperty)
 class ListedPropertyAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'price')
+    list_display = ('name', 'location', 'price', 'latitude', 'longitude')
+    readonly_fields = ('latitude', 'longitude')
     search_fields = ('name', 'location')
     fieldsets = (
         ('Basic Info', {
-            'fields': ('name', 'location', 'location_link', 'price', 'description', 'image')
+            'fields': ('name', 'location', 'location_link', 'latitude', 'longitude', 'price', 'description', 'image')
         }),
         ('Property Details', {
             'fields': ('bedrooms', 'bathrooms', 'area')

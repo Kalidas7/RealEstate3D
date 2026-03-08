@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import SponsoredCard, { CARD_WIDTH, CARD_MARGIN } from '@/components/SponsoredCard';
 import PropertyListCard from '@/components/PropertyListCard';
+import LocationModal from '@/components/LocationModal';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -62,11 +63,15 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [serverError, setServerError] = useState(false);
 
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+
   const { syncLikedFromBackend } = useLikedViewed();
 
   useFocusEffect(
     useCallback(() => {
       loadUser();
+      loadLocation();
     }, [])
   );
 
@@ -79,6 +84,11 @@ export default function HomeScreen() {
   useEffect(() => {
     let result = [...properties];
     let listedResult = [...listedProperties];
+
+    if (selectedCity) {
+      result = result.filter(p => p.location.toLowerCase().includes(selectedCity.toLowerCase()));
+      listedResult = listedResult.filter(p => p.location.toLowerCase().includes(selectedCity.toLowerCase()));
+    }
 
     if (searchQuery.trim() !== '') {
       result = result.filter(
@@ -130,6 +140,31 @@ export default function HomeScreen() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const loadLocation = async () => {
+    try {
+      const savedLocation = await AsyncStorage.getItem('user_location');
+      if (savedLocation) {
+        setSelectedCity(savedLocation);
+        setShowLocationModal(false);
+      } else {
+        setShowLocationModal(true);
+      }
+    } catch (e) {
+      console.error("Error loading location:", e);
+      setShowLocationModal(true);
+    }
+  };
+
+  const handleLocationSelect = async (city: string) => {
+    setSelectedCity(city);
+    try {
+      await AsyncStorage.setItem('user_location', city);
+    } catch (e) {
+      console.error("Error saving location:", e);
+    }
+    setShowLocationModal(false);
   };
 
   const fetchProperties = async () => {
@@ -253,6 +288,12 @@ export default function HomeScreen() {
 
         {isFilterVisible && (
           <View style={styles.filterOptionsContainer}>
+            <TouchableOpacity
+              style={styles.filterOption}
+              onPress={() => { setShowLocationModal(true); setIsFilterVisible(false); }}
+            >
+              <Text style={styles.filterOptionText}>📍 Location {selectedCity ? `(${selectedCity})` : ''}</Text>
+            </TouchableOpacity>
             {['Place', 'Villa', 'Type', 'Bedroom'].map((filter) => (
               <TouchableOpacity
                 key={filter}
@@ -346,6 +387,12 @@ export default function HomeScreen() {
 
       {/* Bottom spacing */}
       <View style={{ height: 100 }} />
+
+      <LocationModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onSelectLocation={handleLocationSelect}
+      />
     </ScrollView>
   );
 }
