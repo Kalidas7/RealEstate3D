@@ -9,11 +9,10 @@ import PropertyListCard from '@/components/PropertyListCard';
 import LocationModal from '@/components/LocationModal';
 import HomeHeader from '@/components/HomeHeader';
 import HomeStateIndicator from '@/components/HomeStateIndicator';
-import { useLikedViewed, PropertyData } from '@/contexts/LikedViewedContext';
+import { useLikedViewed, type PropertyData } from '@/contexts/LikedViewedContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { styles } from './styles';
-
-const API_URL = 'https://realestate3d.onrender.com/api';
+import { API_URL } from '@/utils/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
@@ -22,6 +21,7 @@ const LEFT_PADDING = 20 - CARD_MARGIN;
 export default function HomeScreen() {
     const router = useRouter();
     const { user } = useAuth();
+    const { seedLikeCounts } = useLikedViewed();
     const [properties, setProperties] = useState<PropertyData[]>([]);
     const [listedProperties, setListedProperties] = useState<PropertyData[]>([]);
     const [filteredProperties, setFilteredProperties] = useState<PropertyData[]>([]);
@@ -153,7 +153,7 @@ export default function HomeScreen() {
             if (coords) url += `?lat=${coords.lat}&lon=${coords.lon}`;
 
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Server returned an error');
+            if (!response.ok) throw new Error(`Server returned ${response.status}`);
             const data = await response.json();
 
             if (data.sponsored && Array.isArray(data.sponsored)) {
@@ -166,6 +166,7 @@ export default function HomeScreen() {
                     });
                 }
                 setProperties(data.sponsored);
+                seedLikeCounts(data.sponsored, 'sponsored');
             }
 
             if (data.listed && Array.isArray(data.listed)) {
@@ -178,8 +179,9 @@ export default function HomeScreen() {
                     });
                 }
                 setListedProperties(data.listed);
+                seedLikeCounts(data.listed, 'listed');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Fetch error:', error);
             setServerError(true);
             setProperties([]);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authFetch, API_URL } from '@/utils/api';
 
@@ -17,6 +17,7 @@ export interface PropertyData {
     interactive_mesh_names?: string;
     source?: 'sponsored' | 'listed';
     liked_item_id?: string;
+    like_count?: number;
 }
 
 interface LikedViewedContextType {
@@ -29,6 +30,8 @@ interface LikedViewedContextType {
     viewedProperties: PropertyData[];
     addViewed: (property: PropertyData) => Promise<void>;
     clearAll: () => void;
+    likeCounts: Record<string, number>;
+    seedLikeCounts: (properties: PropertyData[], source: 'sponsored' | 'listed') => void;
 }
 
 const LikedViewedContext = createContext<LikedViewedContextType | undefined>(undefined);
@@ -43,6 +46,11 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
     const [likedIds, setLikedIds] = useState<string[]>([]);
     const [likedProperties, setLikedProperties] = useState<PropertyData[]>([]);
     const [viewedProperties, setViewedProperties] = useState<PropertyData[]>([]);
+    const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+
+    // Version counter: incremented by toggleLike so that any in-flight sync
+    // knows its data is stale and should be discarded.
+    const mutationVersionRef = useRef(0);
 
     useEffect(() => {
         loadViewed();
@@ -60,7 +68,18 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
                 AsyncStorage.getItem('liked_properties'),
             ]);
             if (idsData) setLikedIds(JSON.parse(idsData));
-            if (propsData) setLikedProperties(JSON.parse(propsData));
+            if (propsData) {
+                const props: PropertyData[] = JSON.parse(propsData);
+                setLikedProperties(props);
+                // Extract like counts from cached properties
+                const counts: Record<string, number> = {};
+                props.forEach(p => {
+                    if (p.source && p.like_count !== undefined) {
+                        counts[`${p.source}_${p.id}`] = p.like_count;
+                    }
+                });
+                setLikeCounts(prev => ({ ...prev, ...counts }));
+            }
         } catch (error) {
             console.error('Error loading liked from cache:', error);
         }
@@ -83,27 +102,53 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         const token = await AsyncStorage.getItem('access_token');
         if (!token) return;
 
+        // Capture the version before the fetch starts
+        const versionBefore = mutationVersionRef.current;
+
         try {
-            const [likesRes, propsRes] = await Promise.all([
-                authFetch(`${API_URL}/likes/`),
-                authFetch(`${API_URL}/liked-properties/`),
-            ]);
+            const res = await authFetch(`${API_URL}/liked-properties/`);
 
-            let newIds: string[] = [];
-            let newProps: PropertyData[] = [];
+            if (res.ok) {
+                // If a toggle happened while we were fetching, discard the
+                // stale response — the optimistic state is more up-to-date.
+                if (versionBefore !== mutationVersionRef.current) return;
 
-            if (likesRes.ok) {
-                const likesData = await likesRes.json();
-                newIds = likesData.map((like: any) => like.liked_item_id);
+                const data = await res.json();
+
+                // Handle both response formats:
+                //   New: { liked_ids: [...], properties: [...] }
+                //   Old: [ property1, property2, ... ]  (flat array)
+                let newIds: string[];
+                let newProps: PropertyData[];
+
+                if (Array.isArray(data)) {
+                    // Old format (flat array of properties with source & liked_item_id)
+                    newProps = data;
+                    newIds = data
+                        .map((p: any) => p.liked_item_id)
+                        .filter(Boolean);
+                } else {
+                    // New format
+                    newIds = data.liked_ids || [];
+                    newProps = data.properties || [];
+                }
+
+                // Double-check version again after parsing
+                if (versionBefore !== mutationVersionRef.current) return;
+
+                setLikedIds(newIds);
+                setLikedProperties(newProps);
+                await saveLikedToCache(newIds, newProps);
+
+                // Extract like counts from properties
+                const counts: Record<string, number> = {};
+                newProps.forEach(p => {
+                    if (p.source && p.like_count !== undefined) {
+                        counts[`${p.source}_${p.id}`] = p.like_count;
+                    }
+                });
+                setLikeCounts(prev => ({ ...prev, ...counts }));
             }
-            if (propsRes.ok) {
-                newProps = await propsRes.json();
-            }
-
-            // Always update state and cache, even if 0 items, to overwrite stale data
-            setLikedIds(newIds);
-            setLikedProperties(newProps);
-            await saveLikedToCache(newIds, newProps);
         } catch (error) {
             console.error('Error syncing liked from backend:', error);
         }
@@ -119,6 +164,9 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         const token = await AsyncStorage.getItem('access_token');
         if (!token) return;
 
+        // Bump version so any in-flight sync discards its stale result
+        mutationVersionRef.current++;
+
         const likedItemId = `${source}_${property.id}`;
         const currentlyLiked = likedIds.includes(likedItemId);
 
@@ -129,32 +177,51 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         if (currentlyLiked) {
             newIds = likedIds.filter(id => id !== likedItemId);
             newProps = likedProperties.filter(p => !(p.id === property.id && p.source === source));
+            // Optimistic like count decrement
+            setLikeCounts(prev => ({
+                ...prev,
+                [likedItemId]: Math.max(0, (prev[likedItemId] || 1) - 1),
+            }));
         } else {
             newIds = [...likedIds, likedItemId];
-            // Add property with source to liked properties
             const propWithSource = { ...property, source, liked_item_id: likedItemId };
             newProps = [propWithSource, ...likedProperties];
+            // Optimistic like count increment
+            setLikeCounts(prev => ({
+                ...prev,
+                [likedItemId]: (prev[likedItemId] || 0) + 1,
+            }));
         }
 
         setLikedIds(newIds);
         setLikedProperties(newProps);
-
-        // Save to AsyncStorage immediately
         saveLikedToCache(newIds, newProps);
 
         try {
+            let res: Response;
             if (currentlyLiked) {
-                await authFetch(`${API_URL}/likes/`, {
+                res = await authFetch(`${API_URL}/likes/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ liked_item_id: likedItemId }),
                 });
             } else {
-                await authFetch(`${API_URL}/likes/`, {
+                res = await authFetch(`${API_URL}/likes/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ liked_item_id: likedItemId }),
                 });
+            }
+
+            // Update like count from backend response
+            if (res.ok) {
+                const data = await res.json();
+                if (data.like_count !== undefined) {
+                    setLikeCounts(prev => ({
+                        ...prev,
+                        [likedItemId]: data.like_count,
+                    }));
+                }
             }
         } catch (error) {
             console.error('Error toggling like:', error);
@@ -163,7 +230,7 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
             setLikedProperties(likedProperties);
             saveLikedToCache(likedIds, likedProperties);
         }
-    }, [likedIds, likedProperties, syncLikedFromBackend]);
+    }, [likedIds, likedProperties]);
 
     // ─── Viewed (AsyncStorage) ─────────────────────────────
 
@@ -185,10 +252,34 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         });
     }, []);
 
+    // Seed like counts from public API data (/all-properties/).
+    // Uses mutationVersionRef to avoid overwriting optimistic counts
+    // from a recent toggleLike.
+    const lastSeedVersionRef = useRef(0);
+    const seedLikeCounts = useCallback((properties: PropertyData[], source: 'sponsored' | 'listed') => {
+        const currentVersion = mutationVersionRef.current;
+        lastSeedVersionRef.current = currentVersion;
+
+        const counts: Record<string, number> = {};
+        properties.forEach(p => {
+            if (p.like_count !== undefined) {
+                counts[`${source}_${p.id}`] = p.like_count;
+            }
+        });
+
+        setLikeCounts(prev => {
+            // If a toggle happened since this seed was initiated, keep
+            // the optimistic values for the toggled keys.
+            if (currentVersion !== mutationVersionRef.current) return prev;
+            return { ...prev, ...counts };
+        });
+    }, []);
+
     const clearAll = useCallback(() => {
         setLikedIds([]);
         setLikedProperties([]);
         setViewedProperties([]);
+        setLikeCounts({});
     }, []);
 
     return (
@@ -196,6 +287,7 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
             likedIds, toggleLike, isLiked,
             likedProperties, refreshLiked, syncLikedFromBackend,
             viewedProperties, addViewed, clearAll,
+            likeCounts, seedLikeCounts,
         }}>
             {children}
         </LikedViewedContext.Provider>

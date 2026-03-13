@@ -25,13 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // On mount: read AsyncStorage ONCE to seed in-memory state
     useEffect(() => {
-        AsyncStorage.getItem('user')
-            .then(raw => {
-                if (raw) {
+        Promise.all([
+            AsyncStorage.getItem('user'),
+            AsyncStorage.getItem('access_token'),
+        ])
+            .then(([raw, token]) => {
+                if (raw && token) {
                     const parsed = JSON.parse(raw);
                     console.log('[AuthContext] boot user pic:', parsed?.profile?.profile_pic);
                     setUserState(parsed);
                     setIsLoggedIn(true);
+                } else if (raw && !token) {
+                    // User data exists but no token — clear stale user data
+                    console.log('[AuthContext] Stale user data found without token — clearing');
+                    AsyncStorage.removeItem('user');
                 }
             })
             .catch(() => { })
@@ -58,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'refresh_token',
             'liked_ids',
             'liked_properties',
+            'user_location',
         ]);
         setIsLoggedIn(false);
         setUserState(null);
