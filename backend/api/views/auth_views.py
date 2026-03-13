@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import time
 import os
@@ -122,18 +123,14 @@ def signup_user(request):
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
+@permission_classes([IsAuthenticated])
 def update_profile(request):
     """
-    Updates the user's username, contact number, and profile picture.
+    Updates the authenticated user's username, contact number, and profile picture.
     """
-    email = request.data.get('email')
-    if not email:
-        return Response({"error": "Email is required to identify the user."}, status=status.HTTP_400_BAD_REQUEST)
+    user = request.user
 
     try:
-        user = User.objects.filter(email=email).first()
-        if not user:
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         profile, created = UserProfile.objects.get_or_create(user=user)
 
         # Update username if provided

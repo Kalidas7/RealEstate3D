@@ -4,20 +4,18 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import SkylineExterior from '@/components/buildings/Skyline towers/exterior';
-import GraffitiExterior from '@/components/buildings/Graffiti/exterior';
+import ThreeDModal from '@/components/ThreeDModal';
 import Interior3DModal from '@/components/Interior3DModal';
 import BookingModal from '@/components/BookingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
+import { authFetch, API_BASE } from '@/utils/api';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const API_BASE = 'https://realestate3d.onrender.com';
 
 type DetailTab = 'overview' | 'amenities' | 'trends';
 
@@ -72,17 +70,16 @@ export default function PropertyDetailScreen() {
 
     const handleBookingConfirm = async (date: string, time: string) => {
         try {
-            const userData = await AsyncStorage.getItem('user');
-            if (!userData) {
+            const token = await AsyncStorage.getItem('access_token');
+            if (!token) {
                 alert("Please log in to book a viewing.");
                 router.replace('/(auth)/login' as any);
                 return;
             }
-            const user = JSON.parse(userData);
-            const response = await fetch(`${API_BASE}/api/bookings/`, {
+            const response = await authFetch(`${API_BASE}/api/bookings/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: user.email, property_id: property.id, date, time }),
+                body: JSON.stringify({ property_id: property.id, date, time }),
             });
             if (response.ok) {
                 alert("Booking Confirmed!");
@@ -126,15 +123,14 @@ export default function PropertyDetailScreen() {
                 <Stack.Screen options={{ headerShown: false }} />
                 <View style={{ flex: 1 }}>
                     {viewMode === 'exterior' ? (
-                        property.name === 'Skyline towers' ? (
-                            <SkylineExterior visible={true} onClose={() => { }} modelUrl={modelUrl}
-                                propertyName={property.name} buildingConfig={exteriorConfig}
-                                onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }} />
-                        ) : (
-                            <GraffitiExterior visible={true} onClose={() => { }} modelUrl={modelUrl}
-                                propertyName={property.name} buildingConfig={exteriorConfig}
-                                onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }} />
-                        )
+                        <ThreeDModal
+                            visible={true}
+                            onClose={() => setIsFullscreen(false)}
+                            modelUrl={modelUrl}
+                            propertyName={property.name}
+                            buildingConfig={exteriorConfig}
+                            onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }}
+                        />
                     ) : (
                         <Interior3DModal visible={true} modelUrl={interiorUrl} />
                     )}
@@ -296,15 +292,14 @@ export default function PropertyDetailScreen() {
 
             <View style={styles.viewerSection}>
                 {viewMode === 'exterior' ? (
-                    property.name === 'Skyline towers' ? (
-                        <SkylineExterior visible={true} onClose={() => { }} modelUrl={modelUrl}
-                            propertyName={property.name} buildingConfig={exteriorConfig}
-                            onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }} />
-                    ) : (
-                        <GraffitiExterior visible={true} onClose={() => { }} modelUrl={modelUrl}
-                            propertyName={property.name} buildingConfig={exteriorConfig}
-                            onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }} />
-                    )
+                    <ThreeDModal
+                        visible={true}
+                        onClose={() => { }}
+                        modelUrl={modelUrl}
+                        propertyName={property.name}
+                        buildingConfig={exteriorConfig}
+                        onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }}
+                    />
                 ) : (
                     <View style={{ flex: 1 }}>
                         <Interior3DModal visible={true} modelUrl={interiorUrl} />

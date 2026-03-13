@@ -7,14 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Calendar from 'expo-calendar';
 import BookingModal from '@/components/BookingModal';
 import { useAsyncBackendSync } from '@/hooks/useAsyncBackendSync';
+import { authFetch, API_BASE } from '@/utils/api';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const API_BASE = 'https://realestate3d.onrender.com';
 
 interface PropertyDetails {
     id: number;
@@ -45,10 +44,9 @@ export default function BookingsScreen() {
         cacheKey: 'cached_bookings',
         defaultValue: [],
         fetchFromBackend: async () => {
-            const userData = await AsyncStorage.getItem('user');
-            if (!userData) return null;
-            const user = JSON.parse(userData);
-            const response = await fetch(`${API_BASE}/api/bookings/?email=${user.email}`);
+            const token = await AsyncStorage.getItem('access_token');
+            if (!token) return null;
+            const response = await authFetch(`${API_BASE}/api/bookings/`);
             if (response.ok) return await response.json();
             return null;
         },
@@ -70,14 +68,10 @@ export default function BookingsScreen() {
         if (!bookingToReschedule) return;
 
         try {
-            const userData = await AsyncStorage.getItem('user');
-            if (!userData) return;
-            const user = JSON.parse(userData);
-
-            const response = await fetch(`${API_BASE}/api/bookings/${bookingToReschedule.id}/reschedule/`, {
+            const response = await authFetch(`${API_BASE}/api/bookings/${bookingToReschedule.id}/reschedule/`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: user.email, date, time })
+                body: JSON.stringify({ date, time })
             });
 
             if (response.ok) {

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_URL = 'https://realestate3d.onrender.com/api';
+import { authFetch, API_URL } from '@/utils/api';
 
 export interface PropertyData {
     id: number;
@@ -52,16 +51,6 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
         });
     }, []);
 
-    const getUserEmail = async (): Promise<string | null> => {
-        try {
-            const userData = await AsyncStorage.getItem('user');
-            if (userData) return JSON.parse(userData).email;
-        } catch (e) {
-            console.error('Error getting user email:', e);
-        }
-        return null;
-    };
-
     // ─── Liked — AsyncStorage Cache ─────────────────────────
 
     const loadLikedFromCache = async () => {
@@ -91,13 +80,13 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
     // ─── Liked — Backend Sync ───────────────────────────────
 
     const syncLikedFromBackend = useCallback(async () => {
-        const email = await getUserEmail();
-        if (!email) return;
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) return;
 
         try {
             const [likesRes, propsRes] = await Promise.all([
-                fetch(`${API_URL}/likes/?email=${encodeURIComponent(email)}`),
-                fetch(`${API_URL}/liked-properties/?email=${encodeURIComponent(email)}`),
+                authFetch(`${API_URL}/likes/`),
+                authFetch(`${API_URL}/liked-properties/`),
             ]);
 
             let newIds: string[] = [];
@@ -127,8 +116,8 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
     }, [likedIds]);
 
     const toggleLike = useCallback(async (property: PropertyData, source: 'sponsored' | 'listed') => {
-        const email = await getUserEmail();
-        if (!email) return;
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) return;
 
         const likedItemId = `${source}_${property.id}`;
         const currentlyLiked = likedIds.includes(likedItemId);
@@ -155,16 +144,16 @@ export function LikedViewedProvider({ children }: { children: React.ReactNode })
 
         try {
             if (currentlyLiked) {
-                await fetch(`${API_URL}/likes/`, {
+                await authFetch(`${API_URL}/likes/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, liked_item_id: likedItemId }),
+                    body: JSON.stringify({ liked_item_id: likedItemId }),
                 });
             } else {
-                await fetch(`${API_URL}/likes/`, {
+                await authFetch(`${API_URL}/likes/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, liked_item_id: likedItemId }),
+                    body: JSON.stringify({ liked_item_id: likedItemId }),
                 });
             }
         } catch (error) {

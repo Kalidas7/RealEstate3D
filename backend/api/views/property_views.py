@@ -1,4 +1,5 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
@@ -63,6 +64,7 @@ def get_listed_properties(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAdminUser])
 def migrate_coords(request):
     """Re-extract coordinates for all properties using the Geocoding API."""
     try:

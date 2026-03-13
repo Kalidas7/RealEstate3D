@@ -7,14 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAuthHeaders, API_BASE } from '@/utils/api';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const API_URL = 'https://realestate3d.onrender.com';
 
 interface User {
     id: number;
@@ -87,26 +86,11 @@ export default function ProfileScreen() {
                     try {
                         clearAll();
                         await logout(); // clears AsyncStorage + sets isLoggedIn=false
-
-                        // Force a full app reload to reset ALL state:
-                        // navigation stack, contexts, in-memory data.
-                        // On fresh boot, AuthContext reads empty storage → login form.
-                        const { DevSettings } = require('react-native');
-                        if (__DEV__ && DevSettings?.reload) {
-                            DevSettings.reload();
-                        } else {
-                            // Production: use expo-updates
-                            try {
-                                const Updates = require('expo-updates');
-                                await Updates.reloadAsync();
-                            } catch {
-                                // Fallback: navigate to index
-                                router.replace('/');
-                            }
-                        }
+                        // No need for router.replace — the root _layout.tsx
+                        // Redirect component will automatically navigate to
+                        // /(auth)/login when isLoggedIn becomes false.
                     } catch (error) {
                         console.error('[Logout] Error:', error);
-                        router.replace('/');
                     }
                 },
             },
@@ -138,7 +122,6 @@ export default function ProfileScreen() {
         setIsUpdating(true);
 
         const formData = new FormData();
-        formData.append('email', user.email);
 
         if (editUsername) formData.append('username', editUsername);
         if (editContact) formData.append('contact_number', editContact);
@@ -155,8 +138,10 @@ export default function ProfileScreen() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/profile/update/`, {
+            const authHeaders = await getAuthHeaders();
+            const response = await fetch(`${API_BASE}/api/profile/update/`, {
                 method: 'PUT',
+                headers: { ...authHeaders },
                 body: formData,
             });
 
@@ -194,7 +179,7 @@ export default function ProfileScreen() {
         ? (() => {
             const base = user.profile!.profile_pic!.startsWith('http')
                 ? user.profile!.profile_pic!
-                : `${API_URL}${user.profile!.profile_pic}`;
+                : `${API_BASE}${user.profile!.profile_pic}`;
             // Strip any existing cache-buster then add a fresh unique timestamp
             const urlWithoutTs = base.split('?')[0];
             return `${urlWithoutTs}?t=${Date.now()}`;
