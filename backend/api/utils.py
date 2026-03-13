@@ -20,12 +20,13 @@ def extract_coords_from_maps_link(url, bias_text=None):
         history_urls = [r.headers.get('Location') for r in response.history if r.headers.get('Location')]
         all_urls = [expanded_url] + history_urls
         
-        # 2. Check for DIRECT intent coordinates in the URL (Instant - saves API quota)
+        # 2. Check for DIRECT coordinates in the URL (Instant - saves API quota)
         for u in all_urls:
-            # Match saddr=lat,lon (Directions origin), daddr=lat,lon (Directions destination)
             patterns = [
-                r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)',
-                r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)'
+                r'@(-?\d+\.\d+),(-?\d+\.\d+)',      # @lat,lon in URL path
+                r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)',   # !3dlat!4dlon in data params
+                r'saddr=(-?\d+\.\d+),(-?\d+\.\d+)',   # Directions origin
+                r'daddr=(-?\d+\.\d+),(-?\d+\.\d+)',   # Directions destination
             ]
             for p in patterns:
                 match = re.search(p, u)
