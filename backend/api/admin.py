@@ -20,6 +20,10 @@ class PropertyAdmin(admin.ModelAdmin):
             'description': 'These fields control the interactive 3D elements.',
             'fields': ('interactive_mesh_names',)
         }),
+        ('Audio Tour', {
+            'description': 'Optional audio files for each interior camera node.',
+            'fields': ('audio_node_1', 'audio_node_2', 'audio_node_3'),
+        }),
     )
 
 @admin.register(ListedProperty)
@@ -40,6 +44,10 @@ class ListedPropertyAdmin(admin.ModelAdmin):
         ('3D Interaction Config', {
             'description': 'These fields control the interactive 3D elements.',
             'fields': ('interactive_mesh_names',)
+        }),
+        ('Audio Tour', {
+            'description': 'Optional audio files for each interior camera node.',
+            'fields': ('audio_node_1', 'audio_node_2', 'audio_node_3'),
         }),
     )
 

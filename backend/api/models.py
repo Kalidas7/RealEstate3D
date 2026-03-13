@@ -51,6 +51,11 @@ class Property(models.Model):
         help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022, Geom3D050'
     )
 
+    # Audio tour files for interior camera nodes (optional)
+    audio_node_1 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
+    audio_node_2 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
+    audio_node_3 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
+
     # Location Coordinates (Extracted from location_link)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
@@ -96,6 +101,11 @@ class ListedProperty(models.Model):
         blank=True, default='',
         help_text='Comma-separated mesh names. Example: Geom3D106, Geom3D022'
     )
+
+    # Audio tour files for interior camera nodes (optional)
+    audio_node_1 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
+    audio_node_2 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
+    audio_node_3 = models.FileField(upload_to='audio_tours/', blank=True, null=True)
 
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)

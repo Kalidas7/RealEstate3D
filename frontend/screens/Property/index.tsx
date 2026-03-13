@@ -26,13 +26,14 @@ export default function PropertyDetailScreen() {
     const [viewMode, setViewMode] = useState<'exterior' | 'interior'>('exterior');
     const [isBookingModalVisible, setBookingModalVisible] = useState(false);
     const [activeTab, setActiveTab] = useState<DetailTab>('overview');
-    const { addViewed, isLiked, toggleLike } = useLikedViewed();
+    const { addViewed, isLiked, toggleLike, likeCounts } = useLikedViewed();
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
     const property = params.property ? JSON.parse(params.property as string) : null;
 
     const source: 'sponsored' | 'listed' = property?.source || 'sponsored';
     const liked = property ? isLiked(property.id, source) : false;
+    const likeCount = property ? (likeCounts[`${source}_${property.id}`] || 0) : 0;
 
     const handleLike = () => {
         if (!property) return;
@@ -109,6 +110,12 @@ export default function PropertyDetailScreen() {
         ? (property.interior_file.startsWith('http') ? property.interior_file : `${API_BASE}${property.interior_file}`)
         : null;
 
+    const audioUrls = [
+        property.audio_node_1 || null,
+        property.audio_node_2 || null,
+        property.audio_node_3 || null,
+    ];
+
     const meshNamesStr = property.interactive_mesh_names || '';
     const exteriorConfig = {
         fixedButtons: [] as any[],
@@ -132,7 +139,7 @@ export default function PropertyDetailScreen() {
                             onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }}
                         />
                     ) : (
-                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} audioUrls={audioUrls} />
                     )}
                 </View>
                 <TouchableOpacity style={styles.exitFullscreen} onPress={() => setIsFullscreen(false)}>
@@ -154,6 +161,9 @@ export default function PropertyDetailScreen() {
                 <TouchableOpacity style={styles.detailLikeBtn} onPress={handleLike} activeOpacity={0.7}>
                     <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22}
                         color={liked ? '#ff4d6d' : 'rgba(255,255,255,0.6)'} />
+                    {likeCount > 0 && (
+                        <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 2 }}>{likeCount}</Text>
+                    )}
                 </TouchableOpacity>
             </View>
 
@@ -302,7 +312,7 @@ export default function PropertyDetailScreen() {
                     />
                 ) : (
                     <View style={{ flex: 1 }}>
-                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} audioUrls={audioUrls} />
                         <TouchableOpacity style={styles.backToExteriorBtn} onPress={() => setViewMode('exterior')}>
                             <Ionicons name="arrow-back" size={14} color="#fff" />
                             <Text style={styles.backToExteriorText}> Back to Exterior</Text>

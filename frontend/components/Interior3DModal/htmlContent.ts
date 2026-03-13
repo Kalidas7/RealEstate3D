@@ -43,9 +43,35 @@ export const CameraMovementStyles = `
     min-width: 70px;
     text-align: center;
   }
+  .audio-btn {
+    padding: 8px 14px;
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    transition: background 0.2s, transform 0.15s;
+    display: none;
+  }
+  .audio-btn:active {
+    transform: scale(0.95);
+  }
+  .audio-btn.visible {
+    display: inline-block;
+  }
+  .audio-btn.playing {
+    background: rgba(234, 102, 102, 0.9);
+  }
 `;
 
-export function generateInteriorHtml(modelUrl: string): string {
+export function generateInteriorHtml(modelUrl: string, audioUrls?: (string | null)[]): string {
+  const audioNode1 = audioUrls?.[0] ? `'${audioUrls[0]}'` : 'null';
+  const audioNode2 = audioUrls?.[1] ? `'${audioUrls[1]}'` : 'null';
+  const audioNode3 = audioUrls?.[2] ? `'${audioUrls[2]}'` : 'null';
+
   return `
   <!DOCTYPE html>
   <html>
@@ -125,6 +151,15 @@ export function generateInteriorHtml(modelUrl: string): string {
         Node_3: 'View 3'
       };
 
+      // Audio URLs per node (null = no audio for that node)
+      var nodeAudioUrls = {
+        Node_1: ${audioNode1},
+        Node_2: ${audioNode2},
+        Node_3: ${audioNode3}
+      };
+      var currentAudio = null;
+      var isAudioPlaying = false;
+
       // Order views sequentially along the Y axis
       var nodeOrder = ['Node_1', 'Node_3', 'Node_2'];
 
@@ -159,6 +194,7 @@ export function generateInteriorHtml(modelUrl: string): string {
       window.moveCameraToNode = function(nodeName) {
         if (isMovingCamera || !worldNodes[nodeName]) return;
         if (nodeName === currentNodeName) return;
+        stopAudio();
         isMovingCamera = true;
 
         var startPos    = camera.position.clone();
@@ -204,18 +240,74 @@ export function generateInteriorHtml(modelUrl: string): string {
         controls.maxDistance   = Infinity; 
       }
 
+      // ---------- AUDIO CONTROLS ----------
+
+      function stopAudio() {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          currentAudio = null;
+        }
+        isAudioPlaying = false;
+        var audioBtn = document.getElementById('__audioBtn');
+        if (audioBtn) {
+          audioBtn.innerText = '🔊';
+          audioBtn.classList.remove('playing');
+        }
+      }
+
+      function toggleAudio() {
+        var url = nodeAudioUrls[currentNodeName];
+        if (!url) return;
+
+        if (isAudioPlaying && currentAudio) {
+          stopAudio();
+          return;
+        }
+
+        stopAudio();
+        currentAudio = new Audio(url);
+        currentAudio.play();
+        isAudioPlaying = true;
+
+        var audioBtn = document.getElementById('__audioBtn');
+        if (audioBtn) {
+          audioBtn.innerText = '⏹';
+          audioBtn.classList.add('playing');
+        }
+
+        currentAudio.onended = function() {
+          isAudioPlaying = false;
+          var btn = document.getElementById('__audioBtn');
+          if (btn) {
+            btn.innerText = '🔊';
+            btn.classList.remove('playing');
+          }
+          currentAudio = null;
+        };
+      }
+
       // ---------- NAV UI ----------
 
       function updateNavUI() {
         var navLabel = document.getElementById('__navLabel');
         var prevBtn  = document.getElementById('__prevBtn');
         var nextBtn  = document.getElementById('__nextBtn');
+        var audioBtn = document.getElementById('__audioBtn');
         if (!navLabel || !prevBtn || !nextBtn) return;
 
         navLabel.innerText = nodeLabels[currentNodeName] || currentNodeName;
 
+        // Show/hide audio button based on whether this node has audio
+        if (audioBtn) {
+          var hasAudio = !!nodeAudioUrls[currentNodeName];
+          audioBtn.className = 'audio-btn' + (hasAudio ? ' visible' : '');
+          audioBtn.innerText = '🔊';
+          audioBtn.classList.remove('playing');
+        }
+
         var idx = nodeOrder.indexOf(currentNodeName);
-        
+
         if (idx <= 0) {
           prevBtn.disabled = true;
         } else {
@@ -253,9 +345,16 @@ export function generateInteriorHtml(modelUrl: string): string {
         nextBtn.className = 'nav-btn-small';
         nextBtn.innerText = 'Next ➡';
 
+        var audioBtn = document.createElement('button');
+        audioBtn.id = '__audioBtn';
+        audioBtn.className = 'audio-btn';
+        audioBtn.innerText = '🔊';
+        audioBtn.onclick = toggleAudio;
+
         container.appendChild(prevBtn);
         container.appendChild(label);
         container.appendChild(nextBtn);
+        container.appendChild(audioBtn);
 
         document.body.appendChild(container);
         updateNavUI();
