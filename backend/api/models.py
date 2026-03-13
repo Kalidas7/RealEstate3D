@@ -13,8 +13,11 @@ class UserProfile(models.Model):
 
 class UserLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
-    liked_item_id = models.CharField(max_length=255) 
+    liked_item_id = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'liked_item_id')
 
     def __str__(self):
         return f"{self.user.username} liked {self.liked_item_id}"

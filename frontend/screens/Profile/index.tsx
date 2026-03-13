@@ -186,6 +186,11 @@ export default function ProfileScreen() {
             });
             const data = await response.json();
             if (response.ok) {
+                // Store new JWT tokens so old ones are replaced
+                if (data.access && data.refresh) {
+                    await AsyncStorage.setItem('access_token', data.access);
+                    await AsyncStorage.setItem('refresh_token', data.refresh);
+                }
                 Alert.alert('Success', 'Password changed successfully.');
                 setCurrentPassword('');
                 setNewPassword('');

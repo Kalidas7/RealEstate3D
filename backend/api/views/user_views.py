@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import UserLike, Property, ListedProperty
 from api.serializers import UserLikeSerializer, PropertySerializer, ListedPropertySerializer
 
@@ -113,4 +114,11 @@ def change_password(request):
     user.set_password(new_password)
     user.save()
 
-    return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+    # Issue new JWT tokens so the frontend can replace the old ones
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "message": "Password changed successfully",
+        "access": str(refresh.access_token),
+        "refresh": str(refresh)
+    }, status=status.HTTP_200_OK)

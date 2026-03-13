@@ -6,9 +6,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_URL } from '@/utils/api';
 import { styles } from './styles';
 
-const API_URL = 'https://realestate3d.onrender.com/api';
+// NOTE: API_URL comes from @/utils/api.ts
+// To switch between local and Render, change ONLY utils/api.ts:
 
 export default function LoginScreen() {
     const { refreshLiked } = useLikedViewed();
@@ -143,16 +145,26 @@ export default function LoginScreen() {
                 method: 'POST',
                 body: formData,
             });
-            const data = await response.json();
-            if (response.ok) {
-                await refreshLiked();
-                // Set user in AuthContext (also persists to AsyncStorage)
-                setUser(data.user);
-                setLoggedIn(true);
-                // No router.replace needed — root _layout.tsx Redirect
-                // handles navigation when isLoggedIn becomes true.
-            } else {
-                Alert.alert('Signup Failed', data.error);
+            const responseText = await response.text();
+            try {
+                const data = JSON.parse(responseText);
+                if (response.ok) {
+                    // Store tokens in AsyncStorage (same as login)
+                    if (data.access && data.refresh) {
+                        await AsyncStorage.setItem('access_token', data.access);
+                        await AsyncStorage.setItem('refresh_token', data.refresh);
+                    }
+                    await refreshLiked();
+                    // Set user in AuthContext (also persists to AsyncStorage)
+                    setUser(data.user);
+                    setLoggedIn(true);
+                } else {
+                    Alert.alert('Signup Failed', data.error || 'Something went wrong');
+                }
+            } catch (parseError) {
+                console.error('JSON Parse Error on signup:', parseError);
+                console.error('Full response was:', responseText);
+                Alert.alert('Server Error', 'Signup endpoint returned invalid response.');
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to connect');

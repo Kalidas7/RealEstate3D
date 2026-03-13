@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import transaction
 from rest_framework.decorators import api_view, parser_classes, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -105,9 +106,8 @@ def login_user(request):
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        # Catch any other errors and return them as JSON
-        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({"error": "An unexpected error occurred. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
@@ -124,6 +124,9 @@ def signup_user(request):
     if not email or not password:
         return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    if len(password) < 6:
+        return Response({"error": "Password must be at least 6 characters"}, status=status.HTTP_400_BAD_REQUEST)
+
     if User.objects.filter(email=email).exists():
         return Response({"error": "Email already registered"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -133,17 +136,19 @@ def signup_user(request):
             return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Create User
-        user = User.objects.create_user(username=email, email=email, password=password)
+        with transaction.atomic():
+            # Create User and UserProfile together — if either fails, both are rolled back
+            user = User.objects.create_user(username=email, email=email, password=password)
 
-        # Create UserProfile
-        UserProfile.objects.create(
-            user=user,
-            contact_number=contact_number,
-            profile_pic=profile_pic
-        )
-        
-        profile_obj = UserProfile.objects.get(user=user)
+            profile_obj = UserProfile.objects.create(
+                user=user,
+                contact_number=contact_number,
+                profile_pic=profile_pic
+            )
+
+        # Generate JWT tokens for the new user
+        refresh = RefreshToken.for_user(user)
+
         user_data = {
             'id': user.id,
             'username': user.username,
@@ -153,9 +158,14 @@ def signup_user(request):
                 'profile_pic': request.build_absolute_uri(profile_obj.profile_pic.url) if profile_obj.profile_pic else None
             }
         }
-        return Response({"message": "User created successfully", "user": user_data}, status=status.HTTP_201_CREATED)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "message": "User created successfully",
+            "user": user_data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        }, status=status.HTTP_201_CREATED)
+    except Exception:
+        return Response({"error": "Failed to create account. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
@@ -219,8 +229,8 @@ def update_profile(request):
 
     except User.DoesNotExist:
         return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({"error": "An unexpected error occurred. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -246,11 +256,8 @@ def forgot_password(request):
     chars = string.ascii_letters + string.digits
     temp_password = ''.join(secrets.choice(chars) for _ in range(12))
 
-    # Update user's password
-    user.set_password(temp_password)
-    user.save()
-
-    # Send email
+    # Send email FIRST — only change password if email was delivered successfully.
+    # Otherwise the user gets locked out with no way to know the new password.
     try:
         send_mail(
             subject='Veedu - Your Temporary Password',
@@ -266,7 +273,11 @@ def forgot_password(request):
             fail_silently=False,
         )
     except Exception:
-        # Don't leak email sending errors to the client
-        pass
+        # Email failed — do NOT change the password, user keeps their current one
+        return Response({"message": success_message}, status=status.HTTP_200_OK)
+
+    # Email sent successfully — now update the password
+    user.set_password(temp_password)
+    user.save()
 
     return Response({"message": success_message}, status=status.HTTP_200_OK)

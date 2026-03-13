@@ -19,8 +19,8 @@ def manage_bookings(request):
             bookings = Booking.objects.filter(user=user).select_related('property').order_by('-created_at')
             serializer = BookingSerializer(bookings, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     elif request.method == 'POST':
         property_id = request.data.get('property_id')
@@ -46,8 +46,8 @@ def manage_bookings(request):
 
         except Property.DoesNotExist:
             return Response({"error": "Property not found"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
