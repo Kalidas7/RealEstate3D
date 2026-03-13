@@ -2,18 +2,35 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
-from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.throttling import AnonRateThrottle
 import time
 import os
 import string
-import random
+import secrets
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import UserProfile
 from api.serializers import UserSerializer
+
+
+class LoginThrottle(AnonRateThrottle):
+    scope = 'login'
+
+
+class CheckEmailThrottle(AnonRateThrottle):
+    scope = 'check_email'
+
+
+class ForgotPasswordThrottle(AnonRateThrottle):
+    scope = 'forgot_password'
+
+
+class SignupThrottle(AnonRateThrottle):
+    scope = 'signup'
 
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -27,6 +44,7 @@ def _validate_image(file):
     return None
 
 @api_view(['POST'])
+@throttle_classes([CheckEmailThrottle])
 def check_email(request):
     """
     Checks if an email exists in the database.
@@ -39,6 +57,7 @@ def check_email(request):
     return Response({"exists": exists, "email": email}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@throttle_classes([LoginThrottle])
 def login_user(request):
     """
     Logs in a user with email and password. Returns JWT tokens.
@@ -92,6 +111,7 @@ def login_user(request):
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
+@throttle_classes([SignupThrottle])
 def signup_user(request):
     """
     Creates a new user with profile details.
@@ -204,22 +224,27 @@ def update_profile(request):
 
 
 @api_view(['POST'])
+@throttle_classes([ForgotPasswordThrottle])
 def forgot_password(request):
     """
     Generates a random temporary password, updates the user's password,
-    and emails it to them.
+    and emails it to them. Returns the same message whether the email
+    exists or not to prevent email enumeration.
     """
     email = request.data.get('email')
     if not email:
         return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Always return success to prevent email enumeration
+    success_message = "If an account exists with this email, a temporary password has been sent."
+
     user = User.objects.filter(email=email).first()
     if not user:
-        return Response({"error": "No account found with this email"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": success_message}, status=status.HTTP_200_OK)
 
-    # Generate random 8-character password
+    # Generate cryptographically secure 12-character password
     chars = string.ascii_letters + string.digits
-    temp_password = ''.join(random.choices(chars, k=8))
+    temp_password = ''.join(secrets.choice(chars) for _ in range(12))
 
     # Update user's password
     user.set_password(temp_password)
@@ -240,7 +265,8 @@ def forgot_password(request):
             recipient_list=[email],
             fail_silently=False,
         )
-    except Exception as e:
-        return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        # Don't leak email sending errors to the client
+        pass
 
-    return Response({"message": "Temporary password sent to your email"}, status=status.HTTP_200_OK)
+    return Response({"message": success_message}, status=status.HTTP_200_OK)

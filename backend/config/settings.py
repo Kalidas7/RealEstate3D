@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import dj_database_url
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file for local development (no-op on Render)
 
 # Google Maps API Key for Geocoding
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
@@ -33,6 +36,7 @@ ALLOWED_HOSTS = [
     "realestate3d.onrender.com",
     "localhost",
     "127.0.0.1",
+    "192.168.1.6",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -148,6 +152,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/hour',
+        'check_email': '20/hour',
+        'forgot_password': '5/hour',
+        'signup': '5/hour',
+    },
 }
 
 # JWT settings
@@ -165,6 +176,9 @@ CORS_ALLOWED_ORIGINS = [
     'https://realestate3d.onrender.com',
     # Add web sharing domain here when ready
 ]
+
+# Allow all origins in local development (React Native doesn't send Origin header, but just in case)
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

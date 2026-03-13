@@ -50,6 +50,8 @@ export default function LoginScreen() {
                     } else {
                         setStep('signup');
                     }
+                } else if (response.status === 429) {
+                    Alert.alert('Too Many Requests', 'Please wait before trying again.');
                 } else {
                     Alert.alert('Error', data.error || 'Something went wrong');
                 }
@@ -96,6 +98,8 @@ export default function LoginScreen() {
                     setLoggedIn(true);
                     // No router.replace needed — root _layout.tsx Redirect
                     // handles navigation when isLoggedIn becomes true.
+                } else if (response.status === 429) {
+                    Alert.alert('Too Many Requests', 'Too many login attempts. Please wait before trying again.');
                 } else {
                     Alert.alert('Login Failed', data.error);
                 }
@@ -168,9 +172,11 @@ export default function LoginScreen() {
             });
             const data = await response.json();
             if (response.ok) {
-                Alert.alert('Success', 'A temporary password has been sent to your email. Use it to log in.', [
+                Alert.alert('Success', 'If an account exists with this email, a temporary password has been sent. Check your inbox.', [
                     { text: 'OK', onPress: () => { setPassword(''); setStep('login'); } }
                 ]);
+            } else if (response.status === 429) {
+                Alert.alert('Too Many Requests', 'Please wait before trying again.');
             } else {
                 Alert.alert('Error', data.error || 'Something went wrong');
             }
