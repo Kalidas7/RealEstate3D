@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 # Google Maps API Key for Geocoding
-GOOGLE_MAPS_API_KEY = "AIzaSyDk1pHd1bTBi83wUfVif8WvULadkd-JmZA"
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-m@yv#bx$sjzjy#7n*&wrf1jocc1-4f^78nc1lp7-3j!9moje6%'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # TEMPORARY: set back to False after debugging
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     "realestate3d.onrender.com",
@@ -96,7 +96,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres.lagmbkkfqptulxckwnpr',
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'Kalidas@2606!'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': 'aws-1-ap-northeast-2.pooler.supabase.com',
         'PORT': '6543',
         'OPTIONS': {
@@ -168,8 +168,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Supabase Storage (S3) Configuration ---
 # Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Render Environment tab
-AWS_ACCESS_KEY_ID = '33d5d8190a9796ec0534045d315e69f2'
-AWS_SECRET_ACCESS_KEY = 'ab5e200f1662736de974a3deeed6f716f7ae297e32f8d90f2427d9bbb31a2ced'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'media'
 AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3'
 AWS_S3_REGION_NAME = 'ap-northeast-2'
