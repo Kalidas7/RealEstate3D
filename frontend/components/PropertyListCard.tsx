@@ -36,8 +36,9 @@ export default function PropertyListCard({
     interactive_mesh_names,
     onPress,
 }: PropertyListCardProps) {
-    const { isLiked, toggleLike } = useLikedViewed();
+    const { isLiked, toggleLike, likeCounts } = useLikedViewed();
     const liked = isLiked(id, 'listed');
+    const likeCount = likeCounts[`listed_${id}`] || 0;
 
     const handleLike = () => {
         toggleLike({ id, name, location, price, image, bedrooms, bathrooms, area, description, three_d_file, interior_file, interactive_mesh_names, source: 'listed' }, 'listed');
@@ -58,6 +59,9 @@ export default function PropertyListCard({
                             size={18}
                             color={liked ? '#ff4d6d' : 'rgba(255,255,255,0.6)'}
                         />
+                        {likeCount > 0 && (
+                            <Text style={styles.likeCount}>{likeCount}</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -133,12 +137,18 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     likeButton: {
-        width: 30,
-        height: 30,
+        minWidth: 30,
+        minHeight: 30,
         borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
+    },
+    likeCount: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: '600',
+        marginTop: 1,
     },
     location: {
         fontSize: 12,

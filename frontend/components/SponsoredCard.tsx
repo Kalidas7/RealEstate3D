@@ -38,8 +38,9 @@ export default function SponsoredCard({
     interactive_mesh_names,
     onPress,
 }: SponsoredCardProps) {
-    const { isLiked, toggleLike } = useLikedViewed();
+    const { isLiked, toggleLike, likeCounts } = useLikedViewed();
     const liked = isLiked(id, 'sponsored');
+    const likeCount = likeCounts[`sponsored_${id}`] || 0;
 
     const handleLike = () => {
         toggleLike({ id, name, location, price, image, bedrooms, bathrooms: 0, area, three_d_file, interior_file, interactive_mesh_names, source: 'sponsored' }, 'sponsored');
@@ -65,6 +66,9 @@ export default function SponsoredCard({
                     size={18}
                     color={liked ? '#ff4d6d' : '#fff'}
                 />
+                {likeCount > 0 && (
+                    <Text style={styles.likeCount}>{likeCount}</Text>
+                )}
             </TouchableOpacity>
 
             {/* Bottom info */}
@@ -139,12 +143,19 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 18,
         right: 18,
-        width: 36,
-        height: 36,
+        minWidth: 36,
+        minHeight: 36,
         borderRadius: 18,
         backgroundColor: 'rgba(0,0,0,0.35)',
         justifyContent: 'center',
         alignItems: 'center',
+        paddingVertical: 6,
+    },
+    likeCount: {
+        fontSize: 10,
+        color: '#fff',
+        fontWeight: '600',
+        marginTop: 1,
     },
     content: {
         position: 'absolute',

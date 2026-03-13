@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
+import { Redirect } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +36,12 @@ function AnimatedTabIcon({ name, color, focused }: AnimatedTabIconProps) {
 }
 
 export default function TabLayout() {
+  const { isLoggedIn, isLoading } = useAuth();
+
+  // Auth guard: don't render tabs if user is not logged in.
+  // Redirect to login — the root _layout.tsx also handles this,
+  // but this is a safety net for direct deep links to tab routes.
+  if (!isLoading && !isLoggedIn) return <Redirect href="/(auth)/login" />;
   return (
     <Tabs
       screenOptions={{

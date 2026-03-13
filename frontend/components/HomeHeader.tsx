@@ -32,7 +32,7 @@ export default function HomeHeader({
         <View style={styles.header}>
             <View style={styles.headerTop}>
                 <View>
-                    <Text style={styles.greeting}>Discover</Text>
+                    
                     <Text style={styles.title}>Properties</Text>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton} activeOpacity={0.8}>
