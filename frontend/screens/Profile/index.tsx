@@ -39,6 +39,8 @@ export default function ProfileScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [editUsername, setEditUsername] = useState('');
     const [editContact, setEditContact] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
@@ -159,6 +161,38 @@ export default function ProfileScreen() {
             }
         } catch (error) {
             console.error(error);
+            Alert.alert('Error', 'Failed to connect to the server.');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword) {
+            Alert.alert('Error', 'Please fill in both password fields');
+            return;
+        }
+        if (newPassword.length < 6) {
+            Alert.alert('Error', 'New password must be at least 6 characters');
+            return;
+        }
+        setIsUpdating(true);
+        try {
+            const authHeaders = await getAuthHeaders();
+            const response = await fetch(`${API_BASE}/api/change-password/`, {
+                method: 'PUT',
+                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                Alert.alert('Success', 'Password changed successfully.');
+                setCurrentPassword('');
+                setNewPassword('');
+            } else {
+                Alert.alert('Error', data.error || 'Failed to change password');
+            }
+        } catch (error) {
             Alert.alert('Error', 'Failed to connect to the server.');
         } finally {
             setIsUpdating(false);
@@ -377,10 +411,46 @@ export default function ProfileScreen() {
                             keyboardType="phone-pad"
                         />
 
+                        <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 }} />
+
+                        <Text style={styles.inputLabel}>Current Password</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                            placeholder="Enter current password"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            secureTextEntry
+                        />
+
+                        <Text style={styles.inputLabel}>New Password</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            placeholder="Enter new password"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            secureTextEntry
+                        />
+
+                        {(currentPassword || newPassword) ? (
+                            <TouchableOpacity
+                                style={[styles.modalBtnSave, { marginBottom: 12 }]}
+                                onPress={handleChangePassword}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalBtnSaveText}>Change Password</Text>
+                                )}
+                            </TouchableOpacity>
+                        ) : null}
+
                         <View style={styles.modalActions}>
                             <TouchableOpacity
                                 style={styles.modalBtnCancel}
-                                onPress={() => setIsEditing(false)}
+                                onPress={() => { setIsEditing(false); setCurrentPassword(''); setNewPassword(''); }}
                                 disabled={isUpdating}
                             >
                                 <Text style={styles.modalBtnCancelText}>Cancel</Text>

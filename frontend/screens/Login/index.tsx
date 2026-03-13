@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,11 +11,10 @@ import { styles } from './styles';
 const API_URL = 'https://realestate3d.onrender.com/api';
 
 export default function LoginScreen() {
-    const router = useRouter();
     const { refreshLiked } = useLikedViewed();
-    const { setLoggedIn } = useAuth();
+    const { setLoggedIn, setUser } = useAuth();
 
-    const [step, setStep] = useState<'email' | 'login' | 'signup'>('email');
+    const [step, setStep] = useState<'email' | 'login' | 'signup' | 'forgot'>('email');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [contactNumber, setContactNumber] = useState('');
@@ -88,14 +86,16 @@ export default function LoginScreen() {
                 const data = JSON.parse(responseText);
                 console.log('Login response:', data);
                 if (response.ok) {
-                    // Store both user data and JWT tokens
-                    await AsyncStorage.setItem('user', JSON.stringify(data.user));
+                    // Store tokens in AsyncStorage
                     await AsyncStorage.setItem('access_token', data.access);
                     await AsyncStorage.setItem('refresh_token', data.refresh);
                     console.log('User data and tokens saved');
                     await refreshLiked();
+                    // Set user in AuthContext (also persists to AsyncStorage)
+                    setUser(data.user);
                     setLoggedIn(true);
-                    router.replace('/(tabs)');
+                    // No router.replace needed — root _layout.tsx Redirect
+                    // handles navigation when isLoggedIn becomes true.
                 } else {
                     Alert.alert('Login Failed', data.error);
                 }
@@ -141,15 +141,41 @@ export default function LoginScreen() {
             });
             const data = await response.json();
             if (response.ok) {
-                await AsyncStorage.setItem('user', JSON.stringify(data.user));
                 await refreshLiked();
+                // Set user in AuthContext (also persists to AsyncStorage)
+                setUser(data.user);
                 setLoggedIn(true);
-                router.replace('/(tabs)');
+                // No router.replace needed — root _layout.tsx Redirect
+                // handles navigation when isLoggedIn becomes true.
             } else {
                 Alert.alert('Signup Failed', data.error);
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to connect');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!email) return Alert.alert('Error', 'Please enter an email');
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/forgot-password/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                Alert.alert('Success', 'A temporary password has been sent to your email. Use it to log in.', [
+                    { text: 'OK', onPress: () => { setPassword(''); setStep('login'); } }
+                ]);
+            } else {
+                Alert.alert('Error', data.error || 'Something went wrong');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to connect to server');
         } finally {
             setLoading(false);
         }
@@ -179,9 +205,9 @@ export default function LoginScreen() {
             >
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
-                        <Text style={styles.logo}>3D Flat</Text>
+                        <Text style={styles.logo}>Veedu</Text>
                         <Text style={styles.subtitle}>
-                            {step === 'email' ? 'Find Your Dream Home' : step === 'login' ? 'Welcome Back' : 'Create Account'}
+                            {step === 'email' ? 'Find Your Dream Home' : step === 'login' ? 'Welcome Back' : step === 'forgot' ? 'Reset Password' : 'Create Account'}
                         </Text>
                     </View>
 
@@ -233,6 +259,41 @@ export default function LoginScreen() {
                                     ) : (
                                         <Text style={styles.buttonText}>Login</Text>
                                     )}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setStep('email')} style={styles.linkButton}>
+                                    <Text style={styles.linkText}>Change Email</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setStep('forgot')} style={styles.linkButton}>
+                                    <Text style={styles.linkText}>Forgot Password?</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {step === 'forgot' && (
+                            <View style={styles.form}>
+                                <Text style={styles.label}>Confirm Your Email</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter your email"
+                                    placeholderTextColor="rgba(255,255,255,0.5)"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                />
+                                <TouchableOpacity
+                                    style={[styles.button, loading && styles.buttonDisabled]}
+                                    onPress={handleForgotPassword}
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.buttonText}>Send Temporary Password</Text>
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setStep('login')} style={styles.linkButton}>
+                                    <Text style={styles.linkText}>Back to Login</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => setStep('email')} style={styles.linkButton}>
                                     <Text style={styles.linkText}>Change Email</Text>
@@ -291,7 +352,7 @@ export default function LoginScreen() {
                         )}
                     </BlurView>
 
-                    <Text style={styles.versionText}>Version 1.0.0</Text>
+                    <Text style={styles.versionText}>Version 2.1.0</Text>
                 </ScrollView>
             </LinearGradient>
         </KeyboardAvoidingView>

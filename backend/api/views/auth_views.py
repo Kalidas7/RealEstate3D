@@ -1,15 +1,30 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.conf import settings
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import time
 import os
+import string
+import random
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import UserProfile
 from api.serializers import UserSerializer
+
+ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+def _validate_image(file):
+    """Returns an error string if invalid, or None if OK."""
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        return f"Invalid file type '{file.content_type}'. Allowed: JPEG, PNG, GIF, WebP."
+    if file.size > MAX_IMAGE_SIZE:
+        return f"File too large ({file.size // 1024 // 1024}MB). Max 5MB."
+    return None
 
 @api_view(['POST'])
 def check_email(request):
@@ -88,18 +103,19 @@ def signup_user(request):
 
     if not email or not password:
         return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Check if email already exists
+
     if User.objects.filter(email=email).exists():
         return Response({"error": "Email already registered"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if User.objects.filter(email=email).exists():
-        return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+    if profile_pic:
+        err = _validate_image(profile_pic)
+        if err:
+            return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         # Create User
         user = User.objects.create_user(username=email, email=email, password=password)
-        
+
         # Create UserProfile
         UserProfile.objects.create(
             user=user,
@@ -147,6 +163,9 @@ def update_profile(request):
         # Update profile picture if provided
         profile_pic = request.FILES.get('profile_pic')
         if profile_pic:
+            err = _validate_image(profile_pic)
+            if err:
+                return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
             # Generate a unique filename: user_ID_timestamp.ext
             ext = profile_pic.name.split('.')[-1] if '.' in profile_pic.name else 'jpg'
             new_filename = f"user_{user.id}_{int(time.time())}.{ext}"
@@ -182,3 +201,46 @@ def update_profile(request):
         return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def forgot_password(request):
+    """
+    Generates a random temporary password, updates the user's password,
+    and emails it to them.
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return Response({"error": "No account found with this email"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Generate random 8-character password
+    chars = string.ascii_letters + string.digits
+    temp_password = ''.join(random.choices(chars, k=8))
+
+    # Update user's password
+    user.set_password(temp_password)
+    user.save()
+
+    # Send email
+    try:
+        send_mail(
+            subject='Veedu - Your Temporary Password',
+            message=(
+                f'Hi,\n\n'
+                f'You requested a password reset for your Veedu account.\n\n'
+                f'Your temporary password is: {temp_password}\n\n'
+                f'Please log in with this password and change it from your profile settings.\n\n'
+                f'— Veedu Team'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({"message": "Temporary password sent to your email"}, status=status.HTTP_200_OK)
