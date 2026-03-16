@@ -261,3 +261,4 @@ backend/
   - Start: `gunicorn config.wsgi:application`
   - Database: Supabase PostgreSQL
 - **Frontend**: Expo Go (development) / EAS Build (production)
+hello
