@@ -110,12 +110,6 @@ export default function PropertyDetailScreen() {
         ? (property.interior_file.startsWith('http') ? property.interior_file : `${API_BASE}${property.interior_file}`)
         : null;
 
-    const audioUrls = [
-        property.audio_node_1 || null,
-        property.audio_node_2 || null,
-        property.audio_node_3 || null,
-    ];
-
     const meshNamesStr = property.interactive_mesh_names || '';
     const exteriorConfig = {
         fixedButtons: [] as any[],
@@ -139,7 +133,7 @@ export default function PropertyDetailScreen() {
                             onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }}
                         />
                     ) : (
-                        <Interior3DModal visible={true} modelUrl={interiorUrl} audioUrls={audioUrls} />
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
                     )}
                 </View>
                 <TouchableOpacity style={styles.exitFullscreen} onPress={() => setIsFullscreen(false)}>
@@ -312,7 +306,7 @@ export default function PropertyDetailScreen() {
                     />
                 ) : (
                     <View style={{ flex: 1 }}>
-                        <Interior3DModal visible={true} modelUrl={interiorUrl} audioUrls={audioUrls} />
+                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
                         <TouchableOpacity style={styles.backToExteriorBtn} onPress={() => setViewMode('exterior')}>
                             <Ionicons name="arrow-back" size={14} color="#fff" />
                             <Text style={styles.backToExteriorText}> Back to Exterior</Text>

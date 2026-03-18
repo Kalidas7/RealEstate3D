@@ -96,13 +96,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID')
+SUPABASE_REGION = os.environ.get('SUPABASE_REGION', 'ap-northeast-2')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        'USER': 'postgres.lagmbkkfqptulxckwnpr',
+        'USER': f'postgres.{SUPABASE_PROJECT_ID}',
         'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': 'aws-1-ap-northeast-2.pooler.supabase.com',
+        'HOST': f'aws-1-{SUPABASE_REGION}.pooler.supabase.com',
         'PORT': '6543',
         'OPTIONS': {
             'sslmode': 'require',
@@ -189,8 +192,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'media'
-AWS_S3_ENDPOINT_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/s3'
-AWS_S3_REGION_NAME = 'ap-northeast-2'
+AWS_S3_ENDPOINT_URL = f'https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/s3'
+AWS_S3_REGION_NAME = SUPABASE_REGION
 AWS_S3_SIGNATURE_VERSION = 's3v4'
 AWS_S3_ADDRESSING_STYLE = "path"
 
@@ -201,7 +204,7 @@ AWS_QUERYSTRING_AUTH = False  # Don't add auth tokens to file URLs
 AWS_S3_VERIFY = True
 
 # Tell django-storages how to build the public URLs for these files
-AWS_S3_CUSTOM_DOMAIN = f'lagmbkkfqptulxckwnpr.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}'
+AWS_S3_CUSTOM_DOMAIN = f'{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}'
 
 # Always use Supabase S3 for media storage - no local fallback
 if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
@@ -220,7 +223,7 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-MEDIA_URL = 'https://lagmbkkfqptulxckwnpr.supabase.co/storage/v1/object/public/media/'
+MEDIA_URL = f'https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/media/'
 
 # Email configuration (Gmail SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
