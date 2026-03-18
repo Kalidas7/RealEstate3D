@@ -34,6 +34,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     "realestate3d.onrender.com",
+    "realestate3d-dev.onrender.com",
     "localhost",
     "127.0.0.1",
     "192.168.1.6",
@@ -41,6 +42,7 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     'https://realestate3d.onrender.com',
+    'https://realestate3d-dev.onrender.com'
 ]
 
 
@@ -97,7 +99,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID')
-SUPABASE_REGION = os.environ.get('SUPABASE_REGION', 'ap-northeast-2')
+SUPABASE_REGION = os.environ.get('SUPABASE_REGION')
 
 DATABASES = {
     'default': {
@@ -178,6 +180,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = [
     'https://realestate3d.onrender.com',
+    'https://realestate3d-dev.onrender.com',
     # Add web sharing domain here when ready
 ]
 

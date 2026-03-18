@@ -1,8 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Set EXPO_PUBLIC_API_BASE in .env (production) or .env.local (local dev)
-export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://realestate3d.onrender.com';
-export const API_URL = `${API_BASE}/api`;
+const DEV = 'https://realestate3d-dev.onrender.com';
+const PROD = 'https://realestate3d.onrender.com';
+
+const ENV = DEV; // Switch to PROD before merging to main
+
+export const API_BASE = ENV;
+export const API_URL = `${ENV}/api`;
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem('access_token');
