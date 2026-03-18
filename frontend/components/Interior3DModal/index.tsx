@@ -7,13 +7,11 @@ import { generateInteriorHtml } from './htmlContent';
 export interface Interior3DModalProps {
     visible: boolean;
     modelUrl: string | null;
-    audioUrls?: (string | null)[];
 }
 
 export default function Interior3DModal({
     visible,
     modelUrl,
-    audioUrls,
 }: Interior3DModalProps) {
     const [loading, setLoading] = useState(true);
 
@@ -36,7 +34,7 @@ export default function Interior3DModal({
         );
     }
 
-    const htmlContent = generateInteriorHtml(modelUrl, audioUrls);
+    const htmlContent = generateInteriorHtml(modelUrl);
 
     return (
         <View style={styles.container}>
