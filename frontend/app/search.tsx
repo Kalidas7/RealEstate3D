@@ -3,18 +3,17 @@ import {
     View, Text, TextInput, FlatList, TouchableOpacity,
     StyleSheet, ActivityIndicator, Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import PropertyListCard from '@/components/PropertyListCard';
 import { type PropertyData } from '@/contexts/LikedViewedContext';
 import { API_URL } from '@/utils/api';
 
-type SearchResult = PropertyData & { source: 'sponsored' | 'listed' };
-
 export default function SearchScreen() {
     const router = useRouter();
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<SearchResult[]>([]);
+    const [results, setResults] = useState<PropertyData[]>([]);
     const [loading, setLoading] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inputRef = useRef<TextInput>(null);
@@ -36,14 +35,18 @@ export default function SearchScreen() {
 
         debounceRef.current = setTimeout(async () => {
             try {
-                const response = await fetch(`${API_URL}/search/?q=${encodeURIComponent(query.trim())}`);
+                let url = `${API_URL}/search/?q=${encodeURIComponent(query.trim())}`;
+                const stored = await AsyncStorage.getItem('user_location');
+                if (stored) {
+                    const loc = JSON.parse(stored);
+                    if (loc.latitude && loc.longitude) {
+                        url += `&lat=${loc.latitude}&lon=${loc.longitude}`;
+                    }
+                }
+                const response = await fetch(url);
                 if (!response.ok) return;
                 const data = await response.json();
-                const combined: SearchResult[] = [
-                    ...(data.sponsored || []).map((p: PropertyData) => ({ ...p, source: 'sponsored' as const })),
-                    ...(data.listed || []).map((p: PropertyData) => ({ ...p, source: 'listed' as const })),
-                ];
-                setResults(combined);
+                setResults(data.results || []);
             } catch (e) {
                 console.error('Search error:', e);
             } finally {
@@ -56,7 +59,7 @@ export default function SearchScreen() {
         };
     }, [query]);
 
-    const handlePress = (item: SearchResult) => {
+    const handlePress = (item: PropertyData) => {
         router.push({
             pathname: '/property/[id]',
             params: { id: item.id, property: JSON.stringify(item) },
@@ -109,7 +112,7 @@ export default function SearchScreen() {
 
             <FlatList
                 data={results}
-                keyExtractor={(item) => `${item.source}-${item.id}`}
+                keyExtractor={(item) => `${item.id}`}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: 120 }}
                 renderItem={({ item }) => (
