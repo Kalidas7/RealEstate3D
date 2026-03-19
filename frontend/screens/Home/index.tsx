@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-    View, Text, FlatList, Dimensions, RefreshControl, ScrollView
+    View, Text, FlatList, RefreshControl, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,29 @@ import { useLikedViewed, type PropertyData } from '@/contexts/LikedViewedContext
 import { useAuth } from '@/contexts/AuthContext';
 import { styles } from './styles';
 import { API_URL } from '@/utils/api';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+function applyFilter(list: PropertyData[], filter: string | null): PropertyData[] {
+    if (!filter) return list;
+    switch (filter) {
+        case 'Villa':
+            return list.filter(p =>
+                p.name.toLowerCase().includes('villa') ||
+                p.description?.toLowerCase().includes('villa')
+            );
+        case 'Bedroom':
+            return list.sort((a, b) => b.bedrooms - a.bedrooms);
+        case 'Place':
+            return list.sort((a, b) => a.location.localeCompare(b.location));
+        case 'Type':
+            return list.sort((a, b) => {
+                const pa = parseInt(a.price.replace(/[^0-9]/g, '')) || 0;
+                const pb = parseInt(b.price.replace(/[^0-9]/g, '')) || 0;
+                return pa - pb;
+            });
+        default:
+            return list;
+    }
+}
 
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
 const LEFT_PADDING = 20 - CARD_MARGIN;
@@ -26,7 +48,6 @@ export default function HomeScreen() {
     const [listedProperties, setListedProperties] = useState<PropertyData[]>([]);
     const [filteredProperties, setFilteredProperties] = useState<PropertyData[]>([]);
     const [filteredListedProperties, setFilteredListedProperties] = useState<PropertyData[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -37,7 +58,6 @@ export default function HomeScreen() {
     const [selectedCity, setSelectedCity] = useState<string | null>(null);
     const [userCoords, setUserCoords] = useState<{ lat: number, lon: number } | null>(null);
 
-    // Track previous coords to avoid redundant fetches
     const prevCoordsRef = useRef<string | null>(null);
 
     useEffect(() => {
@@ -48,51 +68,11 @@ export default function HomeScreen() {
         fetchAllProperties(userCoords);
     }, [userCoords]);
 
+    // Sync filtered lists from base fetch + apply activeFilter
     useEffect(() => {
-        let result = [...properties];
-        let listedResult = [...listedProperties];
-
-        if (searchQuery.trim() !== '') {
-            result = result.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    p.location.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            listedResult = listedResult.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    p.location.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        if (activeFilter) {
-            switch (activeFilter) {
-                case 'Villa':
-                    result = result.filter(p =>
-                        p.name.toLowerCase().includes('villa') ||
-                        p.description?.toLowerCase().includes('villa')
-                    );
-                    break;
-                case 'Bedroom':
-                    result.sort((a, b) => b.bedrooms - a.bedrooms);
-                    break;
-                case 'Place':
-                    result.sort((a, b) => a.location.localeCompare(b.location));
-                    break;
-                case 'Type':
-                    result.sort((a, b) => {
-                        const pa = parseInt(a.price.replace(/[^0-9]/g, '')) || 0;
-                        const pb = parseInt(b.price.replace(/[^0-9]/g, '')) || 0;
-                        return pa - pb;
-                    });
-                    break;
-            }
-        }
-
-        setFilteredProperties(result);
-        setFilteredListedProperties(listedResult);
-    }, [searchQuery, properties, listedProperties, activeFilter]);
-
+        setFilteredProperties(applyFilter([...properties], activeFilter));
+        setFilteredListedProperties(applyFilter([...listedProperties], activeFilter));
+    }, [properties, listedProperties, activeFilter]);
 
     const loadLocation = async () => {
         try {
@@ -100,7 +80,6 @@ export default function HomeScreen() {
             const savedCoords = await AsyncStorage.getItem('user_coords');
 
             if (savedLocation && savedLocation !== 'skipped') {
-                // User has a real location saved
                 setSelectedCity(savedLocation);
                 if (savedCoords) {
                     const parsed = JSON.parse(savedCoords);
@@ -112,10 +91,8 @@ export default function HomeScreen() {
                 }
                 setShowLocationModal(false);
             } else if (savedLocation === 'skipped') {
-                // User explicitly skipped — never ask again until they change it
                 setShowLocationModal(false);
             } else {
-                // First time ever — ask for location
                 setShowLocationModal(true);
             }
         } catch (e) {
@@ -144,7 +121,6 @@ export default function HomeScreen() {
         setShowLocationModal(false);
     };
 
-    /** Single combined fetch — replaces two separate API calls */
     const fetchAllProperties = async (coords: { lat: number, lon: number } | null = null) => {
         setLoading(true);
         setServerError(false);
@@ -229,8 +205,6 @@ export default function HomeScreen() {
             {/* ─── Header ─────────────────────────────────────────── */}
             <HomeHeader
                 profilePicUrl={profilePicUrl}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
                 isFilterVisible={isFilterVisible}
                 setIsFilterVisible={setIsFilterVisible}
                 activeFilter={activeFilter}
@@ -277,7 +251,7 @@ export default function HomeScreen() {
                     )}
                 />
             ) : (
-                <HomeStateIndicator type="empty" message={searchQuery ? 'No properties match your search' : 'No properties available'} />
+                <HomeStateIndicator type="empty" message="No properties available" />
             )}
 
             {/* ─── All Properties (Vertical List) ────────────────── */}
@@ -318,7 +292,6 @@ export default function HomeScreen() {
                 onSelectLocation={handleLocationSelect}
                 onSkipOption={async () => {
                     try {
-                        // Store 'skipped' sentinel so we never ask again this session
                         await AsyncStorage.setItem('user_location', 'skipped');
                         await AsyncStorage.removeItem('user_coords');
                         prevCoordsRef.current = null;
