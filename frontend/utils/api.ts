@@ -2,8 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEV = 'https://realestate3d-dev.onrender.com';
 const PROD = 'https://realestate3d.onrender.com';
+const LOCAL = 'http://192.168.1.6:8000';
+const LOCAL_KALIDAS = 'http://192.168.1.6:8000';
 
-const ENV = DEV; // Switch to PROD before merging to main
+const ENV = LOCAL; // Switch to DEV/PROD for remote servers
 
 export const API_BASE = ENV;
 export const API_URL = `${ENV}/api`;

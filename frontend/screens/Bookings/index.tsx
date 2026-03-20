@@ -200,7 +200,15 @@ export default function BookingsScreen() {
         }
     };
 
-    const filteredBookings = bookings.filter(b => b.status === activeTab);
+    const now = new Date();
+    const filteredBookings = bookings.filter(b => {
+        // Use date comparison: past bookings are "completed", future are "upcoming"
+        if (b.status === 'cancelled') return false;
+        const bookingDate = parseBookingDateTime(b.date, b.time);
+        const isPast = bookingDate < now;
+        if (activeTab === 'completed') return isPast || b.status === 'completed';
+        return !isPast && b.status !== 'completed';
+    });
 
     return (
         <View style={styles.container}>
