@@ -36,11 +36,11 @@ export default function SearchScreen() {
         debounceRef.current = setTimeout(async () => {
             try {
                 let url = `${API_URL}/search/?q=${encodeURIComponent(query.trim())}`;
-                const stored = await AsyncStorage.getItem('user_location');
+                const stored = await AsyncStorage.getItem('user_coords');
                 if (stored) {
                     const loc = JSON.parse(stored);
-                    if (loc.latitude && loc.longitude) {
-                        url += `&lat=${loc.latitude}&lon=${loc.longitude}`;
+                    if (loc.lat && loc.lon) {
+                        url += `&lat=${loc.lat}&lon=${loc.lon}`;
                     }
                 }
                 const response = await fetch(url);
