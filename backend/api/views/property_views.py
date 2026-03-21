@@ -71,7 +71,7 @@ def search_properties(request):
     """
     Full-text + fuzzy search with location boosting.
     Accepts ?q=query&lat=X&lon=Y.
-    Searches Property table only. Nearby properties are ranked higher.
+    Searches ListedProperty table. Nearby properties are ranked higher.
     """
     query_str = request.query_params.get('q', '').strip()
     if not query_str:
@@ -92,7 +92,7 @@ def search_properties(request):
     )
     fts_query = SearchQuery(query_str, search_type='plain')
 
-    results = Property.objects.annotate(
+    results = ListedProperty.objects.annotate(
         rank=SearchRank(vector, fts_query),
         name_sim=TrigramSimilarity('name', query_str),
         builder_sim=TrigramSimilarity('builder', query_str),
@@ -128,9 +128,10 @@ def search_properties(request):
         scored_results.append(prop)
 
     scored_results.sort(key=lambda x: x.final_score, reverse=True)
+    scored_results = scored_results[:10]
 
     data = {
-        'results': PropertySerializer(scored_results, many=True, context={'request': request}).data,
+        'results': ListedPropertySerializer(scored_results, many=True, context={'request': request}).data,
     }
     cache.set(cache_key, data, timeout=300)
     return Response(data, status=status.HTTP_200_OK)
