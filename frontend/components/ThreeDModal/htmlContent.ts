@@ -23,16 +23,6 @@ export function generateThreeJsHtml(modelUrl: string, buildingConfig: BuildingCo
           color: white; font-size: 16px; text-align: center;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        #click-notification {
-          position: absolute; top: 20%; left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 128, 0, 0.8);
-          color: white; padding: 10px 20px; border-radius: 10px;
-          font-family: sans-serif; font-weight: bold;
-          display: none; z-index: 100;
-          pointer-events: none;
-          transition: opacity 0.3s;
-        }
         .spinner {
           border: 3px solid rgba(255,255,255,0.1);
           border-top: 3px solid #667eea;
@@ -68,7 +58,6 @@ export function generateThreeJsHtml(modelUrl: string, buildingConfig: BuildingCo
     <body>
       <div id="container"></div>
       <div id="loading"><div class="spinner"></div>Loading 3D Model...</div>
-      <div id="click-notification">Click Registered!</div>
       <div class="controls">🔄 Drag to rotate · 🔍 Pinch to zoom</div>
       <div id="error"><div style="font-size:48px;margin-bottom:12px">❌</div>Failed to load 3D model</div>
 
@@ -83,15 +72,6 @@ export function generateThreeJsHtml(modelUrl: string, buildingConfig: BuildingCo
         let fixedClickableObjects = [];
         let selectionHighlight = null;
 
-        function showNotification() {
-          const el = document.getElementById('click-notification');
-          el.style.display = 'block';
-          el.style.opacity = '1';
-          setTimeout(() => {
-            el.style.opacity = '0';
-            setTimeout(() => { el.style.display = 'none'; }, 300);
-          }, 2000);
-        }
 
         function init() {
           try {
@@ -244,7 +224,6 @@ export function generateThreeJsHtml(modelUrl: string, buildingConfig: BuildingCo
           const fixedIntersects = raycaster.intersectObjects(fixedClickableObjects);
           if (fixedIntersects.length > 0) {
             const obj = fixedIntersects[0].object;
-            showNotification();
             window.ReactNativeWebView.postMessage(JSON.stringify({ 
               type: 'fixed_click', 
               name: obj.userData.name,

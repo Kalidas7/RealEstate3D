@@ -54,6 +54,7 @@ export default function Interior3DModal({
                 domStorageEnabled={true}
                 allowFileAccess={true}
                 mixedContentMode="always"
+                scalesPageToFit={false}
                 onMessage={(event) => {
                     try {
                         const data = JSON.parse(event.nativeEvent.data);

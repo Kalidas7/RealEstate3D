@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert, FlatList, Animated, LayoutAnimation, Platform, UIManager, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert, FlatList, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLikedViewed } from '@/contexts/LikedViewedContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAuthHeaders, API_BASE } from '@/utils/api';
+import EditProfileModal from './EditProfileModal';
 import { styles } from './styles';
 
 // Enable LayoutAnimation for Android
@@ -37,18 +38,11 @@ export default function ProfileScreen() {
 
     // Edit Profile State
     const [isEditing, setIsEditing] = useState(false);
-    const [editUsername, setEditUsername] = useState('');
-    const [editContact, setEditContact] = useState('');
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         // Use context user if available (already loaded), otherwise read storage
         if (authUser) {
             setUser(authUser);
-            setEditUsername(authUser.username || '');
-            setEditContact(authUser.profile?.contact_number || '');
         } else {
             loadUser();
         }
@@ -71,8 +65,6 @@ export default function ProfileScreen() {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
                 setAuthUser(parsedUser);
-                setEditUsername(parsedUser.username || '');
-                setEditContact(parsedUser.profile?.contact_number || '');
             }
         } catch (e) {
             console.error(e);
@@ -115,29 +107,22 @@ export default function ProfileScreen() {
         });
 
         if (!result.canceled && result.assets[0] && user) {
-            handleUpdateProfile(result.assets[0].uri);
+            handleUploadProfilePic(result.assets[0].uri);
         }
     };
 
-    const handleUpdateProfile = async (newProfilePicUri?: string) => {
+    const handleUploadProfilePic = async (newProfilePicUri: string) => {
         if (!user) return;
-        setIsUpdating(true);
 
         const formData = new FormData();
-
-        if (editUsername) formData.append('username', editUsername);
-        if (editContact) formData.append('contact_number', editContact);
-
-        if (newProfilePicUri) {
-            const uriParts = newProfilePicUri.split('.');
-            const fileType = uriParts[uriParts.length - 1];
-            // @ts-ignore
-            formData.append('profile_pic', {
-                uri: newProfilePicUri,
-                name: `photo.${fileType}`,
-                type: `image/${fileType}`,
-            });
-        }
+        const uriParts = newProfilePicUri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        // @ts-ignore
+        formData.append('profile_pic', {
+            uri: newProfilePicUri,
+            name: `photo.${fileType}`,
+            type: `image/${fileType}`,
+        });
 
         try {
             const authHeaders = await getAuthHeaders();
@@ -151,57 +136,19 @@ export default function ProfileScreen() {
             if (response.ok) {
                 console.log('[Profile] Update response user pic:', data.user?.profile?.profile_pic);
                 setUser(data.user);
-                setAuthUser(data.user); // propagate to Home via context
-                setIsEditing(false);
-                if (!newProfilePicUri) {
-                    Alert.alert('Success', 'Profile updated successfully.');
-                }
+                setAuthUser(data.user);
             } else {
                 Alert.alert('Update Failed', data.error || 'Something went wrong.');
             }
         } catch (error) {
             console.error(error);
             Alert.alert('Error', 'Failed to connect to the server.');
-        } finally {
-            setIsUpdating(false);
         }
     };
 
-    const handleChangePassword = async () => {
-        if (!currentPassword || !newPassword) {
-            Alert.alert('Error', 'Please fill in both password fields');
-            return;
-        }
-        if (newPassword.length < 6) {
-            Alert.alert('Error', 'New password must be at least 6 characters');
-            return;
-        }
-        setIsUpdating(true);
-        try {
-            const authHeaders = await getAuthHeaders();
-            const response = await fetch(`${API_BASE}/api/change-password/`, {
-                method: 'PUT',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
-            });
-            const data = await response.json();
-            if (response.ok) {
-                // Store new JWT tokens so old ones are replaced
-                if (data.access && data.refresh) {
-                    await AsyncStorage.setItem('access_token', data.access);
-                    await AsyncStorage.setItem('refresh_token', data.refresh);
-                }
-                Alert.alert('Success', 'Password changed successfully.');
-                setCurrentPassword('');
-                setNewPassword('');
-            } else {
-                Alert.alert('Error', data.error || 'Failed to change password');
-            }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to connect to the server.');
-        } finally {
-            setIsUpdating(false);
-        }
+    const handleUserUpdated = (updatedUser: User) => {
+        setUser(updatedUser);
+        setAuthUser(updatedUser);
     };
 
     if (!user) {
@@ -391,90 +338,12 @@ export default function ProfileScreen() {
                 )}
             </Animated.View>
 
-            {/* Edit Profile Modal */}
-            <Modal visible={isEditing} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Edit Profile</Text>
-
-                        <Text style={styles.inputLabel}>Username</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            value={editUsername}
-                            onChangeText={setEditUsername}
-                            placeholder="Enter username"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                        />
-
-                        <Text style={styles.inputLabel}>Contact Number</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            value={editContact}
-                            onChangeText={setEditContact}
-                            placeholder="Enter contact number"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            keyboardType="phone-pad"
-                        />
-
-                        <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 }} />
-
-                        <Text style={styles.inputLabel}>Current Password</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            value={currentPassword}
-                            onChangeText={setCurrentPassword}
-                            placeholder="Enter current password"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            secureTextEntry
-                        />
-
-                        <Text style={styles.inputLabel}>New Password</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            value={newPassword}
-                            onChangeText={setNewPassword}
-                            placeholder="Enter new password"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            secureTextEntry
-                        />
-
-                        {(currentPassword || newPassword) ? (
-                            <TouchableOpacity
-                                style={[styles.modalBtnSave, { marginBottom: 12 }]}
-                                onPress={handleChangePassword}
-                                disabled={isUpdating}
-                            >
-                                {isUpdating ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={styles.modalBtnSaveText}>Change Password</Text>
-                                )}
-                            </TouchableOpacity>
-                        ) : null}
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.modalBtnCancel}
-                                onPress={() => { setIsEditing(false); setCurrentPassword(''); setNewPassword(''); }}
-                                disabled={isUpdating}
-                            >
-                                <Text style={styles.modalBtnCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.modalBtnSave}
-                                onPress={() => handleUpdateProfile()}
-                                disabled={isUpdating}
-                            >
-                                {isUpdating ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={styles.modalBtnSaveText}>Save</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <EditProfileModal
+                visible={isEditing}
+                user={user}
+                onClose={() => setIsEditing(false)}
+                onUserUpdated={handleUserUpdated}
+            />
         </View>
     );
 }

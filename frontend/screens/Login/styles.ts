@@ -105,14 +105,17 @@ export const styles = StyleSheet.create({
         borderStyle: 'dashed',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
     },
     placeholderText: {
-        fontSize: 40,
+        fontSize: 32,
+        textAlign: 'center',
     },
     placeholderSubtext: {
         color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 12,
-        marginTop: 5,
+        fontSize: 10,
+        marginTop: 2,
+        textAlign: 'center',
     },
     versionText: {
         color: 'rgba(255, 255, 255, 0.3)',

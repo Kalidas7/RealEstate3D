@@ -137,7 +137,7 @@ export default function PropertyDetailScreen() {
                     )}
                 </View>
                 <TouchableOpacity style={styles.exitFullscreen} onPress={() => setIsFullscreen(false)}>
-                    <Text style={styles.exitIcon}>⤓</Text>
+                    <Ionicons name="contract-outline" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
         );
@@ -284,7 +284,7 @@ export default function PropertyDetailScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <View style={styles.headerOverlay}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => viewMode === 'interior' ? setViewMode('exterior') : router.back()} style={styles.backBtn}>
                     <Ionicons name="chevron-back" size={20} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle} numberOfLines={1}>{property.name}</Text>
@@ -305,13 +305,7 @@ export default function PropertyDetailScreen() {
                         onEnterInterior={() => { if (interiorUrl) setViewMode('interior'); }}
                     />
                 ) : (
-                    <View style={{ flex: 1 }}>
-                        <Interior3DModal visible={true} modelUrl={interiorUrl} />
-                        <TouchableOpacity style={styles.backToExteriorBtn} onPress={() => setViewMode('exterior')}>
-                            <Ionicons name="arrow-back" size={14} color="#fff" />
-                            <Text style={styles.backToExteriorText}> Back to Exterior</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <Interior3DModal visible={true} modelUrl={interiorUrl} />
                 )}
             </View>
 
