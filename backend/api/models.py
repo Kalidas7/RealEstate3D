@@ -25,6 +25,7 @@ class UserLike(models.Model):
 # --- NEW: The Property Model for 3D Files ---
 class Property(models.Model):
     name = models.CharField(max_length=255) # e.g., "Skyline Towers"
+    builder = models.CharField(max_length=255, default='Unknown') # e.g., "Skyline Developers"
     location = models.CharField(max_length=255) # e.g., "Downtown, City Center"
     location_link = models.URLField(max_length=500, null=True, blank=True)
     price = models.CharField(max_length=100)  # e.g., "$430,000"
@@ -87,6 +88,7 @@ class Property(models.Model):
 # --- Listed Properties (shown in the "All Properties" list on the home page) ---
 class ListedProperty(models.Model):
     name = models.CharField(max_length=255)
+    builder = models.CharField(max_length=255, default='Unknown') # e.g., "Skyline Developers"
     location = models.CharField(max_length=255)
     location_link = models.URLField(max_length=500, null=True, blank=True)
     price = models.CharField(max_length=100)

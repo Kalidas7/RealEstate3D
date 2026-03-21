@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import check_email, login_user, signup_user, user_likes, get_liked_properties, get_all_properties, get_properties, get_listed_properties, manage_bookings, reschedule_booking, update_profile, migrate_coords, forgot_password, change_password
+from .views import check_email, login_user, signup_user, user_likes, get_liked_properties, get_all_properties, get_properties, get_listed_properties, manage_bookings, reschedule_booking, update_profile, migrate_coords, forgot_password, change_password, search_properties
 
 urlpatterns = [
     path('check-email/', check_email, name='check_email'),
@@ -16,4 +16,5 @@ urlpatterns = [
     path('bookings/', manage_bookings, name='manage_bookings'),
     path('bookings/<int:booking_id>/reschedule/', reschedule_booking, name='reschedule_booking'),
     path('migrate-coords/', migrate_coords, name='migrate_coords'),
+    path('search/', search_properties, name='search_properties'),
 ]
