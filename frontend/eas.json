@@ -14,7 +14,7 @@
                 "buildType": "apk"
             },
             "env": {
-                "EXPO_PUBLIC_API_BASE": "https://veedu-dev.onrender.com"
+                "EXPO_PUBLIC_API_BASE": "https://realestate3d.onrender.com"
             }
         },
         "production": {

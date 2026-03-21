@@ -5,7 +5,7 @@ const PROD = 'https://realestate3d.onrender.com';
 const LOCAL_KALIDAS = 'http://192.168.1.6:8000';
 const LOCAL_ARJUN = 'http://192.168.0.105:8000';
 
-const ENV = DEV; // Switch to LOCAL_KALIDAS or PROD before merging
+const ENV = PROD; // Switch to LOCAL_KALIDAS or DEV for development
 
 export const API_BASE = ENV;
 export const API_URL = `${ENV}/api`;

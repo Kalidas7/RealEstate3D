@@ -370,7 +370,7 @@ export default function LoginScreen() {
                         )}
                     </BlurView>
 
-                    <Text style={styles.versionText}>Version 2.1.0</Text>
+                    <Text style={styles.versionText}>Version 3.1.0</Text>
                 </ScrollView>
             </LinearGradient>
         </KeyboardAvoidingView>
