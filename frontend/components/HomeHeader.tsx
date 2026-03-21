@@ -1,12 +1,10 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 interface HomeHeaderProps {
     profilePicUrl: string | null;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
     isFilterVisible: boolean;
     setIsFilterVisible: (visible: boolean) => void;
     activeFilter: string | null;
@@ -17,8 +15,6 @@ interface HomeHeaderProps {
 
 export default function HomeHeader({
     profilePicUrl,
-    searchQuery,
-    setSearchQuery,
     isFilterVisible,
     setIsFilterVisible,
     activeFilter,
@@ -32,7 +28,7 @@ export default function HomeHeader({
         <View style={styles.header}>
             <View style={styles.headerTop}>
                 <View>
-                    
+
                     <Text style={styles.title}>Properties</Text>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={styles.profileButton} activeOpacity={0.8}>
@@ -44,19 +40,17 @@ export default function HomeHeader({
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.searchContainer}>
+            <TouchableOpacity
+                style={styles.searchContainer}
+                onPress={() => router.push('/search' as any)}
+                activeOpacity={0.8}
+            >
                 <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search locations..."
-                    placeholderTextColor="rgba(255,255,255,0.6)"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
-                <TouchableOpacity onPress={() => setIsFilterVisible(!isFilterVisible)} style={styles.filterIconButton}>
+                <Text style={styles.searchPlaceholder}>Search properties, builders...</Text>
+                <TouchableOpacity onPress={() => setIsFilterVisible(!isFilterVisible)} style={styles.filterIconButton} activeOpacity={0.7}>
                     <Ionicons name="options-outline" size={20} color={isFilterVisible ? "#5B8DEF" : "#fff"} />
                 </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
 
             {isFilterVisible && (
                 <View style={styles.filterOptionsContainer}>
@@ -129,10 +123,10 @@ const styles = StyleSheet.create({
         fontSize: 18,
         marginRight: 10,
     },
-    searchInput: {
+    searchPlaceholder: {
         flex: 1,
         fontSize: 16,
-        color: '#fff',
+        color: 'rgba(255,255,255,0.5)',
     },
     filterIconButton: {
         marginLeft: 10,
