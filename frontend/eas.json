@@ -12,9 +12,16 @@
             "distribution": "internal",
             "android": {
                 "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_API_BASE": "https://realestate3d.onrender.com"
             }
         },
-        "production": {}
+        "production": {
+            "env": {
+                "EXPO_PUBLIC_API_BASE": "https://realestate3d.onrender.com"
+            }
+        }
     },
     "submit": {
         "production": {}

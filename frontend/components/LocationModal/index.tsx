@@ -85,10 +85,10 @@ export default function LocationModal({ visible, onClose, onSelectLocation, onSk
                                 activeOpacity={0.8}
                             >
                                 {loading ? (
-                                    <ActivityIndicator color="#fff" />
+                                    <ActivityIndicator color={BLUE} />
                                 ) : (
                                     <>
-                                        <Ionicons name="navigate" size={18} color="#fff" />
+                                        <Ionicons name="navigate" size={18} color={BLUE} />
                                         <Text style={styles.primaryBtnText}>Auto Detect My Location</Text>
                                     </>
                                 )}
